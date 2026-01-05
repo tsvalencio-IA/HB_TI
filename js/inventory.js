@@ -1,5 +1,5 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (FIXED)
+// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (BLINDADO)
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -8,24 +8,31 @@
 
     window.loadInventory = function() {
         const searchInput = document.getElementById('inventory-search');
+        
+        // Listener de Busca Instantânea
         if(searchInput) {
             searchInput.addEventListener('input', (e) => {
                 renderItems(e.target.value);
             });
         }
 
+        // Carrega Estoque (Inventory)
         App.db.ref('inventory').on('value', snap => {
             allItemsCache = [];
             if(!snap.exists()) {
                 renderItems('');
                 return;
             }
+
             snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
+            
+            // Ordena por ID Sequencial (Decrescente)
             allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
+            
             renderItems(searchInput ? searchInput.value : '');
         });
 
-        // Carrega o histórico imediatamente
+        // Carrega Histórico (Auditoria)
         loadHistory();
     };
 
@@ -50,6 +57,7 @@
         }
 
         filteredItems.forEach(item => {
+            // Badges de Status
             let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
             let borderClass = 'border-gray-100';
             
@@ -62,7 +70,7 @@
             }
 
             const deleteHtml = isAdmin 
-                ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class='bx bx-trash text-lg'></i></button>` 
+                ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
                 : '';
 
             const imgHtml = item.image 
@@ -71,6 +79,7 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
+            // CARD DO PRODUTO
             list.innerHTML += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -117,31 +126,47 @@
         });
     }
 
+    // --- FUNÇÃO DE AUDITORIA CORRIGIDA ---
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
+        if (!histDiv) return;
+
         App.db.ref('movements').limitToLast(100).on('value', snap => {
+            if (!snap.exists()) {
+                histDiv.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm"><i class="bx bx-list-ul text-3xl mb-2"></i><br>Nenhuma movimentação registrada.</div>';
+                return;
+            }
+
             const arr = [];
             snap.forEach(c => arr.push(c.val()));
             arr.reverse(); 
 
-            histDiv.innerHTML = '';
-            if(arr.length === 0) {
-                histDiv.innerHTML = '<p class="text-center py-8 text-gray-400 italic text-sm">Nenhum registro de auditoria.</p>';
-                return;
-            }
+            let htmlContent = '';
 
             arr.forEach(m => {
-                // VERIFICAÇÃO ROBUSTA DE TIPO
+                // Proteção contra dados corrompidos
+                if (!m || !m.itemName) return;
+
                 const isOut = (m.type === 'out' || m.type === 'saida');
                 
+                // Variáveis visuais
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-600' : 'bx-up-arrow-circle text-green-600';
-                const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
+                const typeText = isOut ? 'SAÍDA' : 'ENTRADA';
                 const typeBg = isOut ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
                 const qtyClass = isOut ? 'text-orange-600' : 'text-green-600';
                 const signal = isOut ? '-' : '+';
                 
-                histDiv.innerHTML += `
-                    <div class="p-3 md:p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition flex gap-3 items-start last:border-0 relative">
+                // Formatação segura da data
+                let dateDisplay = 'Data n/d';
+                if (m.timestamp) {
+                    try {
+                        const dateObj = new Date(m.timestamp);
+                        dateDisplay = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                    } catch (e) { dateDisplay = 'Erro Data'; }
+                }
+
+                htmlContent += `
+                    <div class="p-3 md:p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition flex gap-3 items-start relative">
                         <div class="mt-1 shrink-0">
                             <i class='bx ${icon} text-3xl'></i>
                         </div>
@@ -152,14 +177,14 @@
                             </div>
                             
                             <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 p-1.5 rounded bg-gray-50 border border-gray-100">
-                                <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName}</div>
-                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Destino:</strong> ${m.sector || 'N/A'}</div>
+                                <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName || 'N/A'}</div>
+                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Setor:</strong> ${m.sector || 'N/A'}</div>
                             </div>
 
                             <p class="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2 break-words">
-                                "${m.justification}"
+                                "${m.justification || 'Sem justificativa'}"
                             </p>
-                            <span class="text-[10px] text-gray-400 font-mono mt-1 block text-right">${new Date(m.timestamp).toLocaleString('pt-BR')}</span>
+                            <span class="text-[10px] text-gray-400 font-mono mt-1 block text-right">${dateDisplay}</span>
                         </div>
                         
                         <div class="flex flex-col justify-center items-end h-full pl-2">
@@ -170,6 +195,8 @@
                     </div>
                 `;
             });
+
+            histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro ao renderizar lista.</p>';
         });
     }
 
@@ -185,7 +212,6 @@
         } catch { throw new Error("Erro upload imagem"); }
     }
 
-    // --- ACTIONS ---
     window.openMove = (id, type) => {
         const m = document.getElementById('move-modal');
         m.classList.remove('hidden');
@@ -219,6 +245,8 @@
 
             const ref = App.db.ref(`inventory/${id}`);
             const snap = await ref.once('value');
+            
+            if (!snap.exists()) throw new Error("Item não encontrado.");
             const item = snap.val();
 
             let newQty = item.qty || 0;
@@ -229,10 +257,11 @@
 
             await ref.update({ qty: newQty });
             
+            // Grava Auditoria
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
-                type: type, // 'in' ou 'out'
+                type: type, 
                 qty: qty, 
                 sector: sector,
                 justification: just,
