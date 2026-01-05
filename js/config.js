@@ -18,11 +18,12 @@
     const CLOUDINARY_UPLOAD_PRESET = "hb_TI_riopreto"; 
 
     // 3. GEMINI AI CONFIG
+    // Modelo ajustado para 1.5 Flash para garantir conexão estável
     const API_KEY_PART_1 = "AIzaSyAfx1aiuP9jWzGDoh"; 
     const API_KEY_PART_2 = "E6KxZ6_68wZkt27VI"; 
     
     const API_KEY = API_KEY_PART_1 + API_KEY_PART_2;
-    const GEMINI_MODEL = "gemini-2.0-flash"; 
+    const GEMINI_MODEL = "gemini-1.5-flash"; 
 
     // 4. CONTEXTO DO HOSPITAL
     const HOSPITAL_INFO = {
