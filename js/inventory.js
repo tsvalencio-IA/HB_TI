@@ -1,5 +1,5 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (BLINDADO)
+// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (VISUALIZAÇÃO CORRIGIDA)
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -16,7 +16,7 @@
             });
         }
 
-        // Carrega Estoque (Inventory)
+        // Carrega Estoque (Lista de Produtos)
         App.db.ref('inventory').on('value', snap => {
             allItemsCache = [];
             if(!snap.exists()) {
@@ -32,7 +32,7 @@
             renderItems(searchInput ? searchInput.value : '');
         });
 
-        // Carrega Histórico (Auditoria)
+        // Carrega Histórico (Auditoria de Movimentações)
         loadHistory();
     };
 
@@ -48,6 +48,7 @@
             const cat = (item.category || '').toLowerCase();
             const loc = (item.location || '').toLowerCase();
             const seq = item.seqId ? String(item.seqId) : '';
+            
             return name.includes(term) || pat.includes(term) || cat.includes(term) || loc.includes(term) || seq.includes(term);
         });
 
@@ -79,7 +80,7 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
-            // CARD DO PRODUTO
+            // CARD DO PRODUTO (Mobile & Desktop)
             list.innerHTML += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -101,7 +102,7 @@
                         </div>
                         <div class="text-right sm:text-center">
                             <p class="text-[10px] text-gray-400 uppercase">Local</p>
-                            <p class="text-xs font-bold text-gray-700 truncate max-w-[100px] sm:max-w-none ml-auto sm:ml-0" title="${item.location || ''}">
+                            <p class="text-xs font-bold text-gray-700 truncate max-w-[100px] sm:max-w-none ml-auto sm:ml-0" title="${item.location || 'Não informado'}">
                                 <i class='bx bx-map text-gray-400'></i> ${item.location || '-'}
                             </p>
                         </div>
@@ -126,7 +127,7 @@
         });
     }
 
-    // --- FUNÇÃO DE AUDITORIA CORRIGIDA ---
+    // --- FUNÇÃO "QUEM EXIBE" CORRIGIDA ---
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
         if (!histDiv) return;
@@ -139,30 +140,33 @@
 
             const arr = [];
             snap.forEach(c => arr.push(c.val()));
-            arr.reverse(); 
+            arr.reverse(); // Mais recente primeiro
 
+            // Construímos o HTML numa variável separada para evitar erros de renderização parcial
             let htmlContent = '';
 
             arr.forEach(m => {
-                // Proteção contra dados corrompidos
-                if (!m || !m.itemName) return;
+                // Proteção contra registros vazios ou corrompidos
+                if (!m) return;
 
-                const isOut = (m.type === 'out' || m.type === 'saida');
+                // Verificação segura do tipo
+                const typeStr = String(m.type || '').toLowerCase();
+                const isOut = (typeStr === 'out' || typeStr === 'saida');
                 
-                // Variáveis visuais
+                // Definição visual
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-600' : 'bx-up-arrow-circle text-green-600';
-                const typeText = isOut ? 'SAÍDA' : 'ENTRADA';
+                const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
                 const typeBg = isOut ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
                 const qtyClass = isOut ? 'text-orange-600' : 'text-green-600';
                 const signal = isOut ? '-' : '+';
                 
                 // Formatação segura da data
-                let dateDisplay = 'Data n/d';
+                let dateDisplay = '-';
                 if (m.timestamp) {
                     try {
-                        const dateObj = new Date(m.timestamp);
-                        dateDisplay = dateObj.toLocaleDateString('pt-BR') + ' ' + dateObj.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-                    } catch (e) { dateDisplay = 'Erro Data'; }
+                        const d = new Date(m.timestamp);
+                        dateDisplay = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                    } catch (e) { dateDisplay = 'Data inválida'; }
                 }
 
                 htmlContent += `
@@ -172,13 +176,13 @@
                         </div>
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-col sm:flex-row justify-between items-start mb-1 gap-1">
-                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
+                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName || 'Item Desconhecido'}</h4>
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${typeBg}">${typeText}</span>
                             </div>
                             
                             <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 p-1.5 rounded bg-gray-50 border border-gray-100">
                                 <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName || 'N/A'}</div>
-                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Setor:</strong> ${m.sector || 'N/A'}</div>
+                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Destino:</strong> ${m.sector || 'N/A'}</div>
                             </div>
 
                             <p class="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2 break-words">
@@ -189,14 +193,15 @@
                         
                         <div class="flex flex-col justify-center items-end h-full pl-2">
                             <span class="text-lg md:text-xl font-bold ${qtyClass}">
-                                ${signal}${m.qty}
+                                ${signal}${m.qty || 0}
                             </span>
                         </div>
                     </div>
                 `;
             });
 
-            histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro ao renderizar lista.</p>';
+            // Só agora injetamos no HTML (Segurança máxima)
+            histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro ao carregar lista.</p>';
         });
     }
 
@@ -212,6 +217,7 @@
         } catch { throw new Error("Erro upload imagem"); }
     }
 
+    // --- ACTIONS ---
     window.openMove = (id, type) => {
         const m = document.getElementById('move-modal');
         m.classList.remove('hidden');
@@ -257,11 +263,11 @@
 
             await ref.update({ qty: newQty });
             
-            // Grava Auditoria
+            // Grava Auditoria (FORÇANDO O TIPO CORRETO)
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
-                type: type, 
+                type: type, // 'in' ou 'out'
                 qty: qty, 
                 sector: sector,
                 justification: just,
@@ -331,7 +337,7 @@
                 name: document.getElementById('i-name').value,
                 category: document.getElementById('i-cat').value,
                 patrimony: document.getElementById('i-pat').value,
-                location: document.getElementById('i-loc').value,
+                location: document.getElementById('i-loc').value, // Salva Localização
                 minQty: parseInt(document.getElementById('i-min').value),
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
