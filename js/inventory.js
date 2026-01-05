@@ -1,5 +1,5 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca, Auditoria e Localização
+// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (FIXED)
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -8,31 +8,24 @@
 
     window.loadInventory = function() {
         const searchInput = document.getElementById('inventory-search');
-        
-        // Listener de Busca Instantânea
         if(searchInput) {
             searchInput.addEventListener('input', (e) => {
                 renderItems(e.target.value);
             });
         }
 
-        // Carrega Estoque
         App.db.ref('inventory').on('value', snap => {
             allItemsCache = [];
             if(!snap.exists()) {
                 renderItems('');
                 return;
             }
-
             snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
-            
-            // Ordena por ID Sequencial (Decrescente)
             allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
-            
             renderItems(searchInput ? searchInput.value : '');
         });
 
-        // Inicia o carregamento do histórico
+        // Carrega o histórico imediatamente
         loadHistory();
     };
 
@@ -48,17 +41,15 @@
             const cat = (item.category || '').toLowerCase();
             const loc = (item.location || '').toLowerCase();
             const seq = item.seqId ? String(item.seqId) : '';
-            
             return name.includes(term) || pat.includes(term) || cat.includes(term) || loc.includes(term) || seq.includes(term);
         });
 
         if (filteredItems.length === 0) {
-            list.innerHTML = `<div class="text-center py-10 text-gray-400"><i class='bx bx-search text-5xl mb-2'></i><p>Nenhum item encontrado.</p></div>`;
+            list.innerHTML = `<div class="text-center py-10 text-gray-400"><i class='bx bx-search text-5xl mb-2'></i><p>Nada encontrado.</p></div>`;
             return;
         }
 
         filteredItems.forEach(item => {
-            // Badges de Status
             let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
             let borderClass = 'border-gray-100';
             
@@ -71,7 +62,7 @@
             }
 
             const deleteHtml = isAdmin 
-                ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
+                ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"><i class='bx bx-trash text-lg'></i></button>` 
                 : '';
 
             const imgHtml = item.image 
@@ -80,7 +71,6 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
-            // CARD DO PRODUTO (Mobile & Desktop)
             list.innerHTML += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -101,8 +91,8 @@
                             <p class="text-xs font-bold text-gray-700 truncate">${item.patrimony || '-'}</p>
                         </div>
                         <div class="text-right sm:text-center">
-                            <p class="text-[10px] text-gray-400 uppercase">Local / Armário</p>
-                            <p class="text-xs font-bold text-gray-700 truncate max-w-[100px] sm:max-w-none ml-auto sm:ml-0" title="${item.location || 'Não informado'}">
+                            <p class="text-[10px] text-gray-400 uppercase">Local</p>
+                            <p class="text-xs font-bold text-gray-700 truncate max-w-[100px] sm:max-w-none ml-auto sm:ml-0" title="${item.location || ''}">
                                 <i class='bx bx-map text-gray-400'></i> ${item.location || '-'}
                             </p>
                         </div>
@@ -129,11 +119,10 @@
 
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
-        // Carrega últimas 100 movimentações
         App.db.ref('movements').limitToLast(100).on('value', snap => {
             const arr = [];
             snap.forEach(c => arr.push(c.val()));
-            arr.reverse(); // Ordena do mais recente para o mais antigo
+            arr.reverse(); 
 
             histDiv.innerHTML = '';
             if(arr.length === 0) {
@@ -142,27 +131,27 @@
             }
 
             arr.forEach(m => {
-                const isOut = m.type === 'out'; // Verifica se é saída
+                // VERIFICAÇÃO ROBUSTA DE TIPO
+                const isOut = (m.type === 'out' || m.type === 'saida');
                 
-                // Configuração Visual Baseada no Tipo
-                const icon = isOut ? 'bx-down-arrow-circle text-orange-500' : 'bx-up-arrow-circle text-green-500';
+                const icon = isOut ? 'bx-down-arrow-circle text-orange-600' : 'bx-up-arrow-circle text-green-600';
                 const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
-                const typeClass = isOut ? 'text-orange-700 bg-orange-100' : 'text-green-700 bg-green-100';
-                const qtyColor = isOut ? 'text-orange-600' : 'text-green-600';
-                const qtyPrefix = isOut ? '-' : '+';
+                const typeBg = isOut ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
+                const qtyClass = isOut ? 'text-orange-600' : 'text-green-600';
+                const signal = isOut ? '-' : '+';
                 
                 histDiv.innerHTML += `
-                    <div class="p-3 md:p-4 hover:bg-gray-50 transition flex gap-3 items-start border-b border-gray-50 last:border-0 relative">
+                    <div class="p-3 md:p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition flex gap-3 items-start last:border-0 relative">
                         <div class="mt-1 shrink-0">
-                            <i class='bx ${icon} text-2xl md:text-3xl'></i>
+                            <i class='bx ${icon} text-3xl'></i>
                         </div>
                         <div class="flex-grow min-w-0">
-                            <div class="flex flex-col sm:flex-row justify-between items-start mb-1">
+                            <div class="flex flex-col sm:flex-row justify-between items-start mb-1 gap-1">
                                 <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${typeClass} uppercase tracking-wider mb-1 sm:mb-0">${typeText}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${typeBg}">${typeText}</span>
                             </div>
                             
-                            <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 bg-gray-50/50 p-1.5 rounded-lg border border-gray-100">
+                            <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 p-1.5 rounded bg-gray-50 border border-gray-100">
                                 <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName}</div>
                                 <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Destino:</strong> ${m.sector || 'N/A'}</div>
                             </div>
@@ -173,9 +162,9 @@
                             <span class="text-[10px] text-gray-400 font-mono mt-1 block text-right">${new Date(m.timestamp).toLocaleString('pt-BR')}</span>
                         </div>
                         
-                        <div class="absolute top-4 right-4 sm:static sm:text-right shrink-0 min-w-[3rem] flex items-center justify-end h-full sm:h-auto">
-                            <span class="text-base md:text-xl font-bold ${qtyColor}">
-                                ${qtyPrefix}${m.qty}
+                        <div class="flex flex-col justify-center items-end h-full pl-2">
+                            <span class="text-lg md:text-xl font-bold ${qtyClass}">
+                                ${signal}${m.qty}
                             </span>
                         </div>
                     </div>
@@ -184,7 +173,6 @@
         });
     }
 
-    // --- UPLOAD ---
     async function uploadImg(file) {
         const url = `https://api.cloudinary.com/v1_1/${window.AppConfig.CLOUDINARY_CLOUD_NAME}/upload`;
         const fd = new FormData();
@@ -239,14 +227,12 @@
                 newQty -= qty;
             } else { newQty += qty; }
 
-            // 1. Atualiza QTD no Item
             await ref.update({ qty: newQty });
             
-            // 2. Grava Auditoria Completa
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
-                type: type, // Garante que 'out' ou 'in' é salvo corretamente
+                type: type, // 'in' ou 'out'
                 qty: qty, 
                 sector: sector,
                 justification: just,
@@ -316,7 +302,7 @@
                 name: document.getElementById('i-name').value,
                 category: document.getElementById('i-cat').value,
                 patrimony: document.getElementById('i-pat').value,
-                location: document.getElementById('i-loc').value, 
+                location: document.getElementById('i-loc').value,
                 minQty: parseInt(document.getElementById('i-min').value),
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
