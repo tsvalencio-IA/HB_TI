@@ -1,5 +1,5 @@
 // ==================================================================
-// CORE: Autenticação e Segurança
+// CORE: Autenticação, Segurança e Gestão de Usuários
 // ==================================================================
 (function() {
     window.HBTech = {
@@ -20,7 +20,7 @@
         App.auth.onAuthStateChanged(async (user) => {
             if (user) {
                 App.currentUser = user;
-                // Busca perfil extendido (role e status)
+                // Busca perfil extendido
                 const snap = await App.db.ref(`users/${user.uid}`).once('value');
                 
                 if (snap.exists()) {
@@ -33,7 +33,9 @@
                         showScreen('pending-screen');
                     }
                 } else {
-                    App.auth.signOut(); // Segurança extra
+                    // Se o usuário foi deletado do banco, desloga
+                    App.auth.signOut();
+                    showScreen('auth-screen');
                 }
             } else {
                 showScreen('auth-screen');
@@ -48,7 +50,6 @@
 
             const userCred = await App.auth.createUserWithEmailAndPassword(email, password);
             
-            // Regra: Primeiro usuário é ADMIN, os outros são TECH (Pendente)
             await App.db.ref(`users/${userCred.user.uid}`).set({
                 name: name,
                 email: email,
@@ -133,25 +134,27 @@
                 if(u.key === App.currentUser.uid) return; // Não mostra a si mesmo
 
                 const isPending = user.status === 'pending';
+                // Layout responsivo para lista de usuários
                 list.innerHTML += `
-                    <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                    <div class="p-3 md:p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50 transition">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-lg">
-                                ${user.name.charAt(0)}
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-lg shrink-0">
+                                ${user.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                                <p class="font-bold text-gray-800 text-sm">${user.name}</p>
-                                <p class="text-xs text-gray-500">${user.email}</p>
+                            <div class="overflow-hidden">
+                                <p class="font-bold text-gray-800 text-sm truncate">${user.name}</p>
+                                <p class="text-xs text-gray-500 truncate">${user.email}</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-end gap-2 w-full sm:w-auto">
                             <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${isPending ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}">
                                 ${isPending ? 'Pendente' : 'Ativo'}
                             </span>
                             ${isPending 
-                                ? `<button onclick="window.updateUserStatus('${u.key}', 'approved')" class="text-green-500 hover:bg-green-50 p-2 rounded-lg" title="Aprovar"><i class='bx bx-check text-xl'></i></button>`
-                                : `<button onclick="window.updateUserStatus('${u.key}', 'pending')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg" title="Bloquear"><i class='bx bx-block text-xl'></i></button>`
+                                ? `<button onclick="window.updateUserStatus('${u.key}', 'approved')" class="bg-green-100 text-green-600 hover:bg-green-200 p-2 rounded-lg transition" title="Aprovar"><i class='bx bx-check text-xl'></i></button>`
+                                : `<button onclick="window.updateUserStatus('${u.key}', 'pending')" class="bg-orange-100 text-orange-600 hover:bg-orange-200 p-2 rounded-lg transition" title="Bloquear"><i class='bx bx-block text-xl'></i></button>`
                             }
+                            <button onclick="window.removeUser('${u.key}')" class="bg-red-100 text-red-600 hover:bg-red-200 p-2 rounded-lg transition" title="Remover Usuário"><i class='bx bx-trash text-xl'></i></button>
                         </div>
                     </div>
                 `;
@@ -160,6 +163,12 @@
     }
 
     window.updateUserStatus = (uid, status) => App.db.ref(`users/${uid}`).update({ status });
+    
+    window.removeUser = (uid) => {
+        if(confirm("ATENÇÃO GESTOR:\n\nTem certeza que deseja REMOVER este usuário?\nEle perderá o acesso imediatamente.")) {
+            App.db.ref(`users/${uid}`).remove();
+        }
+    };
 
     document.addEventListener('DOMContentLoaded', init);
 })();
