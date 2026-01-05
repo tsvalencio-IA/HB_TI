@@ -1,1 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HB-Tech | Gestão de Estoque TI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
 
+    <div id="auth-screen" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-900 to-gray-800">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+            <div class="text-center mb-6">
+                <i class='bx bxs-chip text-6xl text-blue-600'></i>
+                <h1 class="text-2xl font-bold mt-2">HB-Tech Inventory</h1>
+                <p class="text-sm text-gray-500">Hospital de Base de Rio Preto</p>
+            </div>
+
+            <div id="login-box">
+                <form id="login-form" class="space-y-4">
+                    <input type="email" id="l-email" placeholder="Email Institucional" class="w-full p-3 border rounded" required>
+                    <input type="password" id="l-pass" placeholder="Senha" class="w-full p-3 border rounded" required>
+                    <button type="submit" class="w-full bg-blue-700 text-white py-3 rounded font-bold hover:bg-blue-800 transition">Entrar</button>
+                </form>
+                <p class="mt-4 text-center text-sm">Novo na equipe? <button class="text-blue-600 font-bold toggle-auth">Criar Acesso</button></p>
+            </div>
+
+            <div id="register-box" class="hidden">
+                <form id="register-form" class="space-y-4">
+                    <input type="text" id="r-name" placeholder="Nome Completo" class="w-full p-3 border rounded" required>
+                    <input type="email" id="r-email" placeholder="Email" class="w-full p-3 border rounded" required>
+                    <input type="password" id="r-pass" placeholder="Senha" class="w-full p-3 border rounded" required>
+                    <button type="submit" class="w-full bg-green-600 text-white py-3 rounded font-bold hover:bg-green-700 transition">Solicitar Cadastro</button>
+                </form>
+                <p class="mt-4 text-center text-sm">Já tem conta? <button class="text-blue-600 font-bold toggle-auth">Fazer Login</button></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="pending-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-yellow-50">
+        <div class="text-center p-8 max-w-lg">
+            <i class='bx bxs-time-five text-6xl text-yellow-500 mb-4'></i>
+            <h2 class="text-2xl font-bold text-gray-800">Acesso Pendente</h2>
+            <p class="text-gray-600 mt-2">Seu cadastro foi recebido. Por favor, aguarde a aprovação do Administrador da TI para acessar o sistema.</p>
+            <button onclick="location.reload()" class="mt-6 text-blue-600 underline">Tentar novamente</button>
+        </div>
+    </div>
+
+    <div id="app-screen" class="hidden min-h-screen flex flex-col">
+        <header class="bg-blue-800 text-white p-4 shadow-lg flex justify-between items-center sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <i class='bx bxs-hospital text-3xl'></i>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">HB-Tech</h1>
+                    <p class="text-xs opacity-75">Controle de Estoque TI</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="user-name-display" class="hidden md:block text-sm font-medium">Usuário</span>
+                <button id="logout-btn" class="text-white hover:text-red-200"><i class='bx bx-log-out text-2xl'></i></button>
+            </div>
+        </header>
+
+        <div class="bg-white border-b sticky top-[70px] z-10 overflow-x-auto">
+            <div class="flex p-2 container mx-auto gap-2">
+                <button onclick="switchTab('inventory')" class="tab-btn active px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i class='bx bx-box'></i> Estoque</button>
+                <button onclick="switchTab('movements')" class="tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"><i class='bx bx-history'></i> Movimentações</button>
+                <button onclick="switchTab('ai')" class="tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-purple-700"><i class='bx bxs-brain'></i> Gestor IA</button>
+                <button id="nav-admin" onclick="switchTab('admin')" class="hidden tab-btn px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 text-red-700"><i class='bx bxs-lock-alt'></i> Admin</button>
+            </div>
+        </div>
+
+        <main class="container mx-auto p-4 flex-grow">
+            
+            <div id="tab-inventory" class="tab-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-700">Inventário Atual</h2>
+                    <button onclick="window.openItemModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow hover:bg-blue-700 transition flex items-center gap-2">
+                        <i class='bx bx-plus'></i> Novo Item
+                    </button>
+                </div>
+                <div id="inventory-list" class="grid grid-cols-1 gap-2"></div>
+            </div>
+
+            <div id="tab-movements" class="tab-content hidden">
+                <h2 class="text-xl font-bold text-gray-700 mb-4">Histórico de Entrada/Saída</h2>
+                <div id="movements-list"></div>
+            </div>
+
+            <div id="tab-ai" class="tab-content hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg border border-purple-100">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="bg-purple-100 p-3 rounded-full"><i class='bx bxs-bot text-2xl text-purple-600'></i></div>
+                        <div>
+                            <h2 class="text-lg font-bold text-gray-800">Assistente de Gestão TI</h2>
+                            <p class="text-sm text-gray-500">Analisa níveis de estoque e sugere compras.</p>
+                        </div>
+                    </div>
+                    <button id="ask-ai-btn" onclick="window.callAI()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 transition flex items-center justify-center gap-2 shadow-md">
+                        <i class='bx bxs-brain'></i> Gerar Relatório Gerencial
+                    </button>
+                    <div id="ai-response" class="mt-6 p-4 bg-gray-50 rounded-lg border text-sm text-gray-700 leading-relaxed hidden animate-fade-in"></div>
+                </div>
+            </div>
+
+            <div id="tab-admin" class="tab-content hidden">
+                <div class="bg-white p-6 rounded-xl shadow border border-red-100">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Controle de Usuários</h2>
+                    <div id="admin-user-list"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+            <h3 class="text-lg font-bold mb-4">Cadastro de Equipamento</h3>
+            <form id="item-form" class="space-y-3">
+                <input type="hidden" id="item-id">
+                <input type="text" id="i-name" placeholder="Nome do Item (Ex: Switch 24p)" class="w-full p-2 border rounded" required>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="text" id="i-cat" placeholder="Categoria (Ex: Rede)" class="w-full p-2 border rounded" required>
+                    <input type="text" id="i-pat" placeholder="Patrimônio" class="w-full p-2 border rounded">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs text-gray-500">Qtd Mínima</label>
+                        <input type="number" id="i-min" value="5" class="w-full p-2 border rounded" required>
+                    </div>
+                    <div>
+                         <label class="text-xs text-gray-500">Foto</label>
+                         <input type="file" id="file-input" class="w-full text-xs">
+                    </div>
+                </div>
+                <textarea id="i-desc" placeholder="Descrição Técnica / Especificações" class="w-full p-2 border rounded" rows="2"></textarea>
+                
+                <div class="flex justify-end gap-2 mt-4">
+                    <button type="button" onclick="closeModal('item-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Salvar Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="move-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+            <h3 id="move-title" class="text-lg font-bold mb-4">Movimentação</h3>
+            <form id="move-form" class="space-y-4">
+                <input type="hidden" id="move-id">
+                <input type="hidden" id="move-type">
+                
+                <div>
+                    <label class="font-bold text-gray-700">Quantidade</label>
+                    <input type="number" id="m-qty" class="w-full p-3 border rounded text-lg font-bold" min="1" required>
+                </div>
+                <div>
+                    <label class="font-bold text-gray-700">Justificativa / Destino</label>
+                    <textarea id="m-just" class="w-full p-3 border rounded" placeholder="Ex: Instalação na UTI 3 - Leito 4" required></textarea>
+                    <p class="text-xs text-gray-400 mt-1">* Obrigatório para auditoria.</p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('move-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(id) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById('tab-' + id).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('bg-blue-50', 'text-blue-700'));
+            // Adiciona estilo ativo (simplificado)
+        }
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <script src="js/config.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/ai.js"></script>
+</body>
+</html>
