@@ -16,6 +16,7 @@
             });
         }
 
+        // Carrega Estoque
         App.db.ref('inventory').on('value', snap => {
             allItemsCache = [];
             if(!snap.exists()) {
@@ -25,12 +26,13 @@
 
             snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
             
-            // Ordena por ID Sequencial (Decrescente - mais novos primeiro)
+            // Ordena por ID Sequencial (Decrescente)
             allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
             
             renderItems(searchInput ? searchInput.value : '');
         });
 
+        // Inicia o carregamento do histórico
         loadHistory();
     };
 
@@ -127,10 +129,11 @@
 
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
+        // Carrega últimas 100 movimentações
         App.db.ref('movements').limitToLast(100).on('value', snap => {
             const arr = [];
             snap.forEach(c => arr.push(c.val()));
-            arr.reverse();
+            arr.reverse(); // Ordena do mais recente para o mais antigo
 
             histDiv.innerHTML = '';
             if(arr.length === 0) {
@@ -138,12 +141,15 @@
                 return;
             }
 
-            // AQUI ESTÁ A CORREÇÃO: Ambos (Entrada e Saída) usam o mesmo layout detalhado
             arr.forEach(m => {
-                const isOut = m.type === 'out';
+                const isOut = m.type === 'out'; // Verifica se é saída
+                
+                // Configuração Visual Baseada no Tipo
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-500' : 'bx-up-arrow-circle text-green-500';
                 const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
-                const typeClass = isOut ? 'text-orange-600 bg-orange-50' : 'text-green-600 bg-green-50';
+                const typeClass = isOut ? 'text-orange-700 bg-orange-100' : 'text-green-700 bg-green-100';
+                const qtyColor = isOut ? 'text-orange-600' : 'text-green-600';
+                const qtyPrefix = isOut ? '-' : '+';
                 
                 histDiv.innerHTML += `
                     <div class="p-3 md:p-4 hover:bg-gray-50 transition flex gap-3 items-start border-b border-gray-50 last:border-0 relative">
@@ -153,7 +159,7 @@
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-col sm:flex-row justify-between items-start mb-1">
                                 <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${typeClass} uppercase tracking-wider">${typeText}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${typeClass} uppercase tracking-wider mb-1 sm:mb-0">${typeText}</span>
                             </div>
                             
                             <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 bg-gray-50/50 p-1.5 rounded-lg border border-gray-100">
@@ -167,9 +173,9 @@
                             <span class="text-[10px] text-gray-400 font-mono mt-1 block text-right">${new Date(m.timestamp).toLocaleString('pt-BR')}</span>
                         </div>
                         
-                        <div class="absolute top-4 right-4 sm:static sm:text-right shrink-0 min-w-[3rem] flex items-center justify-end h-full">
-                            <span class="text-base md:text-xl font-bold ${isOut ? 'text-orange-600' : 'text-green-600'}">
-                                ${isOut ? '-' : '+'}${m.qty}
+                        <div class="absolute top-4 right-4 sm:static sm:text-right shrink-0 min-w-[3rem] flex items-center justify-end h-full sm:h-auto">
+                            <span class="text-base md:text-xl font-bold ${qtyColor}">
+                                ${qtyPrefix}${m.qty}
                             </span>
                         </div>
                     </div>
@@ -233,15 +239,16 @@
                 newQty -= qty;
             } else { newQty += qty; }
 
+            // 1. Atualiza QTD no Item
             await ref.update({ qty: newQty });
             
-            // Grava Auditoria Completa
+            // 2. Grava Auditoria Completa
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
-                type, 
-                qty, 
-                sector, // Salva o Destino/Local
+                type: type, // Garante que 'out' ou 'in' é salvo corretamente
+                qty: qty, 
+                sector: sector,
                 justification: just,
                 userId: App.currentUser.uid, 
                 userName: App.userProfile.name, 
@@ -272,11 +279,10 @@
         document.getElementById('i-name').value = i.name;
         document.getElementById('i-cat').value = i.category;
         document.getElementById('i-pat').value = i.patrimony || '';
-        document.getElementById('i-loc').value = i.location || ''; // Carrega Localização
+        document.getElementById('i-loc').value = i.location || '';
         document.getElementById('i-min').value = i.minQty;
         document.getElementById('i-desc').value = i.description || '';
         
-        // Sequencial
         const seqField = document.getElementById('seq-display-field');
         const seqVal = document.getElementById('i-seq-val');
         if(i.seqId) {
@@ -310,7 +316,7 @@
                 name: document.getElementById('i-name').value,
                 category: document.getElementById('i-cat').value,
                 patrimony: document.getElementById('i-pat').value,
-                location: document.getElementById('i-loc').value, // Salva Localização
+                location: document.getElementById('i-loc').value, 
                 minQty: parseInt(document.getElementById('i-min').value),
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
