@@ -1,15 +1,11 @@
 // ==================================================================
-// MÓDULO CORE: Autenticação e Gestão de Usuários
+// CORE: Autenticação e Segurança
 // ==================================================================
 (function() {
     window.HBTech = {
         db: null, auth: null, currentUser: null, userProfile: null,
-        utils: {
-            formatDate: d => new Date(d).toLocaleString('pt-BR'),
-            getRef: (path) => firebase.database().ref(path)
-        }
+        utils: { getRef: (path) => firebase.database().ref(path) }
     };
-
     const App = window.HBTech;
 
     function init() {
@@ -20,13 +16,12 @@
         setupLoginUI();
     }
 
-    // --- AUTENTICAÇÃO ---
     function setupAuthListener() {
         App.auth.onAuthStateChanged(async (user) => {
             if (user) {
                 App.currentUser = user;
-                const profileRef = App.db.ref(`users/${user.uid}`);
-                const snap = await profileRef.once('value');
+                // Busca perfil extendido (role e status)
+                const snap = await App.db.ref(`users/${user.uid}`).once('value');
                 
                 if (snap.exists()) {
                     const profile = snap.val();
@@ -35,136 +30,128 @@
                     if (profile.status === 'approved') {
                         showAppInterface(profile);
                     } else {
-                        showPendingScreen();
+                        showScreen('pending-screen');
                     }
                 } else {
-                    // Se não existe perfil, é o primeiro login após criar conta?
-                    // O perfil é criado no registro, então isso é raro.
-                    App.auth.signOut();
+                    App.auth.signOut(); // Segurança extra
                 }
             } else {
-                showLoginScreen();
+                showScreen('auth-screen');
             }
         });
     }
 
-    // --- LÓGICA DE REGISTRO INTELIGENTE ---
     async function handleRegister(email, password, name) {
         try {
-            // 1. Verifica se já existem usuários no sistema
             const usersSnap = await App.db.ref('users').once('value');
             const isFirstUser = !usersSnap.exists() || usersSnap.numChildren() === 0;
 
-            // 2. Cria o usuário no Auth
             const userCred = await App.auth.createUserWithEmailAndPassword(email, password);
-            const uid = userCred.user.uid;
-
-            // 3. Define o papel (Primeiro = ADMIN, Resto = TECH pendente)
-            const role = isFirstUser ? 'admin' : 'tech';
-            const status = isFirstUser ? 'approved' : 'pending';
-
-            // 4. Salva no Realtime Database
-            await App.db.ref(`users/${uid}`).set({
+            
+            // Regra: Primeiro usuário é ADMIN, os outros são TECH (Pendente)
+            await App.db.ref(`users/${userCred.user.uid}`).set({
                 name: name,
                 email: email,
-                role: role,
-                status: status,
+                role: isFirstUser ? 'admin' : 'tech',
+                status: isFirstUser ? 'approved' : 'pending',
                 joinedAt: new Date().toISOString()
             });
 
-            if(!isFirstUser) {
-                alert("Cadastro realizado! Aguarde a liberação do Administrador.");
-            }
-
         } catch (error) {
-            alert("Erro no cadastro: " + error.message);
+            alert("Erro: " + error.message);
         }
     }
 
-    // --- UI HELPERS ---
-    function showLoginScreen() {
-        document.getElementById('auth-screen').classList.remove('hidden');
-        document.getElementById('app-screen').classList.add('hidden');
-        document.getElementById('pending-screen').classList.add('hidden');
-    }
-
-    function showPendingScreen() {
-        document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('app-screen').classList.add('hidden');
-        document.getElementById('pending-screen').classList.remove('hidden');
+    // --- UI Logic ---
+    function showScreen(screenId) {
+        ['auth-screen', 'pending-screen', 'app-screen'].forEach(id => {
+            const el = document.getElementById(id);
+            if(id === screenId) {
+                el.classList.remove('hidden');
+                if(screenId === 'auth-screen') el.classList.add('flex');
+            } else {
+                el.classList.add('hidden');
+                el.classList.remove('flex');
+            }
+        });
     }
 
     function showAppInterface(profile) {
-        document.getElementById('auth-screen').classList.add('hidden');
-        document.getElementById('pending-screen').classList.add('hidden');
-        document.getElementById('app-screen').classList.remove('hidden');
+        showScreen('app-screen');
+        document.getElementById('user-name-display').textContent = `${profile.name}`;
         
-        document.getElementById('user-name-display').textContent = `${profile.name} (${profile.role === 'admin' ? 'Gestor' : 'Técnico'})`;
-        
-        // Se for admin, mostra aba de gestão
+        // Libera aba Admin se for Admin
         if(profile.role === 'admin') {
             document.getElementById('nav-admin').classList.remove('hidden');
             loadAdminPanel();
         }
 
-        // Carrega o estoque
         if(window.loadInventory) window.loadInventory();
     }
 
     function setupLoginUI() {
         const loginForm = document.getElementById('login-form');
         const regForm = document.getElementById('register-form');
-        const toggleBtns = document.querySelectorAll('.toggle-auth');
+        const loginBox = document.getElementById('login-box');
+        const regBox = document.getElementById('register-box');
+
+        document.querySelectorAll('.toggle-auth').forEach(btn => btn.addEventListener('click', () => {
+            loginBox.classList.toggle('hidden');
+            regBox.classList.toggle('hidden');
+        }));
 
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const email = document.getElementById('l-email').value;
-            const pass = document.getElementById('l-pass').value;
-            App.auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+            const btn = e.target.querySelector('button');
+            const oldHtml = btn.innerHTML; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+            
+            App.auth.signInWithEmailAndPassword(
+                document.getElementById('l-email').value,
+                document.getElementById('l-pass').value
+            ).catch(e => { alert(e.message); btn.innerHTML = oldHtml; });
         });
 
         regForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const name = document.getElementById('r-name').value;
-            const email = document.getElementById('r-email').value;
-            const pass = document.getElementById('r-pass').value;
-            handleRegister(email, pass, name);
+            handleRegister(
+                document.getElementById('r-email').value,
+                document.getElementById('r-pass').value,
+                document.getElementById('r-name').value
+            );
         });
-
-        toggleBtns.forEach(btn => btn.addEventListener('click', () => {
-            loginForm.parentElement.classList.toggle('hidden');
-            regForm.parentElement.classList.toggle('hidden');
-        }));
 
         document.getElementById('logout-btn').addEventListener('click', () => App.auth.signOut());
     }
 
-    // --- FUNÇÕES DE ADMINISTRAÇÃO ---
+    // --- Painel Admin ---
     function loadAdminPanel() {
         const list = document.getElementById('admin-user-list');
         App.db.ref('users').on('value', snap => {
             list.innerHTML = '';
             snap.forEach(u => {
                 const user = u.val();
-                const uid = u.key;
-                const isMe = uid === App.currentUser.uid;
-                
-                if(isMe) return; // Não mostra o próprio admin
+                if(u.key === App.currentUser.uid) return; // Não mostra a si mesmo
 
-                const statusColor = user.status === 'approved' ? 'text-green-600' : 'text-orange-600';
-                const actionBtn = user.status === 'pending' 
-                    ? `<button onclick="window.approveUser('${uid}')" class="bg-green-500 text-white px-2 py-1 rounded text-xs">Aprovar</button>`
-                    : `<button onclick="window.blockUser('${uid}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">Bloquear</button>`;
-
+                const isPending = user.status === 'pending';
                 list.innerHTML += `
-                    <div class="flex justify-between items-center p-3 border-b">
-                        <div>
-                            <p class="font-bold">${user.name}</p>
-                            <p class="text-xs text-gray-500">${user.email}</p>
+                    <div class="p-4 flex items-center justify-between hover:bg-gray-50 transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-lg">
+                                ${user.name.charAt(0)}
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm">${user.name}</p>
+                                <p class="text-xs text-gray-500">${user.email}</p>
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <p class="text-xs font-bold ${statusColor} mb-1">${user.status === 'approved' ? 'Ativo' : 'Pendente'}</p>
-                            ${actionBtn}
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${isPending ? 'bg-yellow-100 text-yellow-600' : 'bg-green-100 text-green-600'}">
+                                ${isPending ? 'Pendente' : 'Ativo'}
+                            </span>
+                            ${isPending 
+                                ? `<button onclick="window.updateUserStatus('${u.key}', 'approved')" class="text-green-500 hover:bg-green-50 p-2 rounded-lg" title="Aprovar"><i class='bx bx-check text-xl'></i></button>`
+                                : `<button onclick="window.updateUserStatus('${u.key}', 'pending')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg" title="Bloquear"><i class='bx bx-block text-xl'></i></button>`
+                            }
                         </div>
                     </div>
                 `;
@@ -172,9 +159,7 @@
         });
     }
 
-    // Exporta funções globais para o HTML usar
-    window.approveUser = (uid) => App.db.ref(`users/${uid}`).update({ status: 'approved' });
-    window.blockUser = (uid) => App.db.ref(`users/${uid}`).update({ status: 'pending' });
+    window.updateUserStatus = (uid, status) => App.db.ref(`users/${uid}`).update({ status });
 
     document.addEventListener('DOMContentLoaded', init);
 })();
