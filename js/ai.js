@@ -1,5 +1,5 @@
 // ==================================================================
-// IA: Relatórios Executivos TI (Corrigido e Completo)
+// IA: Relatórios Executivos TI (Gemini 2.0 Flash Exp)
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -9,40 +9,37 @@
         const output = document.getElementById('ai-response');
         
         const oldHtml = btn.innerHTML;
-        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Analisando Banco de Dados...";
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Processando com Gemini 2.0...";
         btn.disabled = true;
         output.classList.add('hidden');
         output.innerHTML = '';
 
         try {
-            // 1. Busca dados frescos do banco
             const snap = await App.db.ref('inventory').once('value');
-            
-            if (!snap.exists()) throw new Error("Estoque vazio. Não há dados para analisar.");
+            if (!snap.exists()) throw new Error("Estoque vazio.");
 
             let dataStr = "";
             snap.forEach(c => {
                 const i = c.val();
                 const seq = i.seqId ? `#${String(i.seqId).padStart(4, '0')}` : 'N/A';
-                dataStr += `- [${seq}] ${i.name} | Local: ${i.location || 'Não def.'} | Qtd: ${i.qty} (Min: ${i.minQty})\n`;
+                dataStr += `ID: ${seq} | Item: ${i.name} | Local: ${i.location || 'N/A'} | Qtd: ${i.qty} (Mín: ${i.minQty})\n`;
             });
 
-            // 2. Prompt Especializado Hospitalar
             const prompt = `
-            ATUE COMO: Gestor Sênior de TI do Hospital de Base de Rio Preto.
-            TAREFA: Analisar o inventário abaixo e recomendar ações de compra e organização.
+            Você é o Gestor de TI do Hospital de Base.
+            Analise o estoque abaixo e gere um relatório técnico curto e direto em HTML.
             
-            DADOS DO INVENTÁRIO ATUAL:
+            ESTOQUE ATUAL:
             ${dataStr}
             
-            REGRAS DE RESPOSTA:
-            1. Identifique itens Críticos (Qtd <= Min).
-            2. Sugira compras agrupadas por Categoria.
-            3. Verifique se há itens sem Localização definida e alerte.
-            4. Use linguagem técnica e direta. Formato HTML simples (<b>, <ul>, <li>).
+            REGRAS:
+            - Liste itens CRÍTICOS (Qtd <= Mínimo) em negrito.
+            - Sugira reposição imediata se necessário.
+            - Verifique itens sem local definido.
+            - Use tags HTML simples: <b>, <ul>, <li>, <br>.
             `;
 
-            // 3. Chamada API (Usando Gemini 1.5 Flash do Config)
+            // URL PARA O MODELO 2.0 FLASH EXPERIMENTAL
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${window.AppConfig.GEMINI_MODEL}:generateContent?key=${window.AppConfig.API_KEY}`;
             
             const res = await fetch(url, {
@@ -53,23 +50,21 @@
 
             if(!res.ok) {
                 const errData = await res.json();
-                throw new Error(`Gemini API Error: ${errData.error?.message || res.statusText}`);
+                throw new Error(errData.error?.message || res.statusText);
             }
 
             const json = await res.json();
-            
-            if(!json.candidates || !json.candidates[0].content) {
-                throw new Error("A IA não retornou conteúdo. Tente novamente.");
-            }
+            const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
 
-            const text = json.candidates[0].content.parts[0].text
-                .replace(/```html/g, '').replace(/```/g, ''); 
+            if(!text) throw new Error("A IA não retornou texto.");
 
-            output.innerHTML = text;
+            const cleanText = text.replace(/```html/g, '').replace(/```/g, '');
+
+            output.innerHTML = cleanText;
             output.classList.remove('hidden');
 
         } catch (e) {
-            output.innerHTML = `<p class="text-red-500 font-bold">Erro na IA: ${e.message}</p>`;
+            output.innerHTML = `<div class="bg-red-50 text-red-600 p-3 rounded text-sm"><strong>Erro na IA:</strong> ${e.message}</div>`;
             output.classList.remove('hidden');
         } finally {
             btn.innerHTML = oldHtml;
