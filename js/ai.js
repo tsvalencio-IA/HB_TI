@@ -24,7 +24,6 @@
             snap.forEach(c => {
                 const i = c.val();
                 const seq = i.seqId ? `#${String(i.seqId).padStart(4, '0')}` : 'N/A';
-                // Agora enviamos LOCALIZAÇÃO e ID para a IA
                 dataStr += `- [${seq}] ${i.name} | Local: ${i.location || 'Não def.'} | Qtd: ${i.qty} (Min: ${i.minQty})\n`;
             });
 
@@ -43,7 +42,7 @@
             4. Use linguagem técnica e direta. Formato HTML simples (<b>, <ul>, <li>).
             `;
 
-            // 3. Chamada API
+            // 3. Chamada API (Usando Gemini 1.5 Flash do Config)
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${window.AppConfig.GEMINI_MODEL}:generateContent?key=${window.AppConfig.API_KEY}`;
             
             const res = await fetch(url, {
@@ -52,12 +51,15 @@
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
 
-            if(!res.ok) throw new Error("Falha na conexão com Gemini AI");
+            if(!res.ok) {
+                const errData = await res.json();
+                throw new Error(`Gemini API Error: ${errData.error?.message || res.statusText}`);
+            }
 
             const json = await res.json();
             
             if(!json.candidates || !json.candidates[0].content) {
-                throw new Error("A IA não retornou conteúdo.");
+                throw new Error("A IA não retornou conteúdo. Tente novamente.");
             }
 
             const text = json.candidates[0].content.parts[0].text
