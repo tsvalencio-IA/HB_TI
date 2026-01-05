@@ -2,11 +2,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HB-Tech | Gestão de Estoque Hospitalar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-50 font-sans text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900">
@@ -14,32 +14,31 @@
     <div id="auth-screen" class="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-slate-900 to-blue-900 relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
 
-        <div class="bg-white/95 backdrop-blur-sm p-8 rounded-2xl shadow-2xl w-full max-w-md border border-white/20 relative z-10 animate-fade-in-up">
-            <div class="text-center mb-8">
+        <div class="bg-white/95 backdrop-blur-sm p-6 md:p-8 rounded-2xl shadow-2xl w-full max-w-sm md:max-w-md border border-white/20 relative z-10 animate-fade-in-up">
+            <div class="text-center mb-6 md:mb-8">
                 <div class="inline-block p-3 bg-blue-100 rounded-full mb-3">
-                    <i class='bx bxs-heart-square text-5xl text-blue-600'></i>
+                    <i class='bx bxs-heart-square text-4xl md:text-5xl text-blue-600'></i>
                 </div>
-                <h1 class="text-3xl font-bold text-gray-800 tracking-tight">HB-Tech Inventory</h1>
-                <p class="text-sm text-gray-500 font-medium mt-1">Hospital de Base - Tecnologia da Informação</p>
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">HB-Tech Inventory</h1>
+                <p class="text-xs md:text-sm text-gray-500 font-medium mt-1">Hospital de Base - Tecnologia da Informação</p>
             </div>
 
             <div id="login-box">
                 <form id="login-form" class="space-y-4">
                     <div class="relative">
                         <i class='bx bx-envelope absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="email" id="l-email" placeholder="Email Institucional" class="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" required>
+                        <input type="email" id="l-email" placeholder="Email Institucional" class="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm md:text-base" required>
                     </div>
                     <div class="relative">
                         <i class='bx bx-lock-alt absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="password" id="l-pass" placeholder="Senha" class="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" required>
+                        <input type="password" id="l-pass" placeholder="Senha" class="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition text-sm md:text-base" required>
                     </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 hover:shadow-lg transform active:scale-95 transition-all">
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 hover:shadow-lg transform active:scale-95 transition-all text-sm md:text-base">
                         Acessar Sistema
                     </button>
                 </form>
                 <div class="mt-6 text-center pt-4 border-t border-gray-100">
-                    <p class="text-sm text-gray-500">Novo técnico?</p>
-                    <button class="text-blue-600 font-bold hover:underline toggle-auth">Solicitar Acesso</button>
+                    <button class="text-blue-600 text-sm font-bold hover:underline toggle-auth">Solicitar Acesso</button>
                 </div>
             </div>
 
@@ -47,69 +46,69 @@
                 <form id="register-form" class="space-y-4">
                     <div class="relative">
                         <i class='bx bx-user absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="text" id="r-name" placeholder="Nome Completo" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="text" id="r-name" placeholder="Nome Completo" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 text-sm md:text-base" required>
                     </div>
                     <div class="relative">
                         <i class='bx bx-envelope absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="email" id="r-email" placeholder="Email" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="email" id="r-email" placeholder="Email" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 text-sm md:text-base" required>
                     </div>
                     <div class="relative">
                         <i class='bx bx-lock-alt absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="password" id="r-pass" placeholder="Criar Senha" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500" required>
+                        <input type="password" id="r-pass" placeholder="Criar Senha" class="w-full pl-10 p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 text-sm md:text-base" required>
                     </div>
-                    <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 hover:shadow-lg transform active:scale-95 transition-all">
+                    <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 hover:shadow-lg transform active:scale-95 transition-all text-sm md:text-base">
                         Confirmar Cadastro
                     </button>
                 </form>
                 <div class="mt-6 text-center pt-4 border-t border-gray-100">
-                    <button class="text-blue-600 font-bold hover:underline toggle-auth">Voltar para Login</button>
+                    <button class="text-blue-600 text-sm font-bold hover:underline toggle-auth">Voltar para Login</button>
                 </div>
             </div>
         </div>
         
-        <footer class="absolute bottom-4 text-white/50 text-xs text-center w-full">
+        <footer class="absolute bottom-4 text-white/50 text-[10px] text-center w-full">
             Desenvolvido com 🤖 por <strong>thIAguinho Soluções</strong>
         </footer>
     </div>
 
     <div id="pending-screen" class="hidden min-h-screen flex items-center justify-center p-4 bg-yellow-50 relative">
-        <div class="text-center p-8 max-w-lg bg-white rounded-2xl shadow-xl border border-yellow-100 animate-fade-in-up">
-            <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <i class='bx bxs-hourglass text-4xl text-yellow-500'></i>
+        <div class="text-center p-6 md:p-8 max-w-lg bg-white rounded-2xl shadow-xl border border-yellow-100 animate-fade-in-up w-full">
+            <div class="w-16 h-16 md:w-20 md:h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class='bx bxs-hourglass text-3xl md:text-4xl text-yellow-500'></i>
             </div>
-            <h2 class="text-2xl font-bold text-gray-800">Acesso em Análise</h2>
-            <p class="text-gray-600 mt-4 leading-relaxed">Seu cadastro foi recebido com sucesso. Por motivos de segurança hospitalar, aguarde a liberação do <strong>Administrador da TI</strong>.</p>
-            <button onclick="location.reload()" class="mt-8 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-bold shadow-md">
+            <h2 class="text-xl md:text-2xl font-bold text-gray-800">Acesso em Análise</h2>
+            <p class="text-sm md:text-base text-gray-600 mt-4 leading-relaxed">Seu cadastro foi recebido. Aguarde a liberação do <strong>Administrador da TI</strong>.</p>
+            <button onclick="location.reload()" class="mt-8 px-6 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-bold shadow-md text-sm md:text-base">
                 Verificar Novamente
             </button>
         </div>
-        <footer class="absolute bottom-4 text-gray-400 text-xs text-center w-full">
+        <footer class="absolute bottom-4 text-gray-400 text-[10px] text-center w-full">
             Desenvolvido com 🤖 por <strong>thIAguinho Soluções</strong>
         </footer>
     </div>
 
-    <div id="app-screen" class="hidden min-h-screen flex flex-col pb-12 relative">
+    <div id="app-screen" class="hidden min-h-screen flex flex-col pb-10 relative">
         <header class="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
             <div class="container mx-auto px-4 h-16 flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-blue-200 shadow-lg">
-                        <i class='bx bxs-chip text-2xl'></i>
+                <div class="flex items-center gap-2 md:gap-3">
+                    <div class="w-8 h-8 md:w-10 md:h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-blue-200 shadow-lg">
+                        <i class='bx bxs-chip text-lg md:text-2xl'></i>
                     </div>
-                    <div class="hidden sm:block">
-                        <h1 class="font-bold text-gray-800 text-lg leading-none">HB-Tech</h1>
-                        <p class="text-xs text-gray-500 font-medium">Controle de Ativos TI</p>
+                    <div>
+                        <h1 class="font-bold text-gray-800 text-sm md:text-lg leading-none">HB-Tech</h1>
+                        <p class="text-[10px] md:text-xs text-gray-500 font-medium">Controle TI</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-4">
-                    <div class="text-right hidden md:block">
-                        <p id="user-name-display" class="text-sm font-bold text-gray-700">Carregando...</p>
-                        <p class="text-[10px] text-green-600 uppercase font-bold tracking-wider flex items-center justify-end gap-1">
-                            <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> Online
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p id="user-name-display" class="text-xs md:text-sm font-bold text-gray-700">Carregando...</p>
+                        <p class="text-[9px] text-green-600 uppercase font-bold tracking-wider flex items-center justify-end gap-1">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> Online
                         </p>
                     </div>
-                    <button id="logout-btn" class="w-10 h-10 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center text-gray-600" title="Sair do Sistema">
-                        <i class='bx bx-power-off text-xl'></i>
+                    <button id="logout-btn" class="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 transition flex items-center justify-center text-gray-600">
+                        <i class='bx bx-power-off text-lg md:text-xl'></i>
                     </button>
                 </div>
             </div>
@@ -118,77 +117,74 @@
         <div class="bg-white border-b border-gray-100 sticky top-16 z-20">
             <div class="container mx-auto px-2">
                 <nav class="flex space-x-1 overflow-x-auto py-2 no-scrollbar">
-                    <button onclick="switchTab('inventory')" class="tab-btn active group flex items-center px-4 py-2 text-sm font-medium rounded-lg">
-                        <i class='bx bx-package mr-2 text-lg'></i> Inventário
+                    <button onclick="switchTab('inventory')" class="tab-btn active group flex-shrink-0 flex items-center px-3 py-2 text-xs md:text-sm font-medium rounded-lg">
+                        <i class='bx bx-package mr-2 text-base md:text-lg'></i> Inventário
                     </button>
-                    <button onclick="switchTab('movements')" class="tab-btn group flex items-center px-4 py-2 text-sm font-medium rounded-lg">
-                        <i class='bx bx-transfer-alt mr-2 text-lg'></i> Movimentações
+                    <button onclick="switchTab('movements')" class="tab-btn group flex-shrink-0 flex items-center px-3 py-2 text-xs md:text-sm font-medium rounded-lg">
+                        <i class='bx bx-transfer-alt mr-2 text-base md:text-lg'></i> Auditoria
                     </button>
-                    <button onclick="switchTab('ai')" class="tab-btn group flex items-center px-4 py-2 text-sm font-medium rounded-lg text-purple-600 hover:bg-purple-50">
-                        <i class='bx bxs-magic-wand mr-2 text-lg'></i> Gestor IA
+                    <button onclick="switchTab('ai')" class="tab-btn group flex-shrink-0 flex items-center px-3 py-2 text-xs md:text-sm font-medium rounded-lg text-purple-600 hover:bg-purple-50">
+                        <i class='bx bxs-magic-wand mr-2 text-base md:text-lg'></i> IA
                     </button>
-                    <button id="nav-admin" onclick="switchTab('admin')" class="hidden tab-btn group flex items-center px-4 py-2 text-sm font-medium rounded-lg text-red-600 hover:bg-red-50">
-                        <i class='bx bxs-shield-alt-2 mr-2 text-lg'></i> Admin
+                    <button id="nav-admin" onclick="switchTab('admin')" class="hidden tab-btn flex-shrink-0 group flex items-center px-3 py-2 text-xs md:text-sm font-medium rounded-lg text-red-600 hover:bg-red-50">
+                        <i class='bx bxs-shield-alt-2 mr-2 text-base md:text-lg'></i> Admin
                     </button>
                 </nav>
             </div>
         </div>
 
-        <main class="container mx-auto p-4 md:p-6 flex-grow animate-fade-in">
-            
+        <main class="container mx-auto p-2 md:p-6 flex-grow animate-fade-in">
             <div id="tab-inventory" class="tab-content">
-                <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6 gap-3">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Inventário Geral</h2>
-                        <p class="text-sm text-gray-500">Gerencie entradas, saídas e manutenção de ativos.</p>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Ativos TI</h2>
+                        <p class="text-xs md:text-sm text-gray-500">Gerenciamento e controle de patrimônio.</p>
                     </div>
-                    <button onclick="window.openItemModal()" class="w-full md:w-auto bg-blue-600 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95 flex items-center justify-center gap-2 font-bold">
-                        <i class='bx bx-plus-circle text-xl'></i> Cadastrar Item
+                    <button onclick="window.openItemModal()" class="w-full md:w-auto bg-blue-600 text-white px-4 py-2.5 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition transform active:scale-95 flex items-center justify-center gap-2 font-bold text-sm">
+                        <i class='bx bx-plus-circle text-lg'></i> Cadastrar Item
                     </button>
                 </div>
                 
-                <div id="inventory-list" class="grid grid-cols-1 gap-4">
-                    <div class="flex justify-center py-10"><i class='bx bx-loader-alt bx-spin text-4xl text-blue-500'></i></div>
-                </div>
+                <div id="inventory-list" class="grid grid-cols-1 gap-3"></div>
             </div>
 
             <div id="tab-movements" class="tab-content hidden">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Auditoria de Movimentações</h2>
-                    <p class="text-sm text-gray-500">Registro imutável de todas as operações realizadas.</p>
+                <div class="mb-4 md:mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Auditoria</h2>
+                    <p class="text-xs md:text-sm text-gray-500">Rastreabilidade completa de movimentações.</p>
                 </div>
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div id="movements-list" class="divide-y divide-gray-100"></div>
                 </div>
             </div>
 
             <div id="tab-ai" class="tab-content hidden">
                 <div class="max-w-4xl mx-auto">
-                    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl shadow-xl text-white p-8 mb-6">
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="bg-white/20 p-3 rounded-full backdrop-blur-sm">
-                                <i class='bx bxs-brain text-3xl text-white'></i>
+                    <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-xl text-white p-6 md:p-8 mb-6">
+                        <div class="flex items-center gap-3 md:gap-4 mb-4">
+                            <div class="bg-white/20 p-2 md:p-3 rounded-full backdrop-blur-sm">
+                                <i class='bx bxs-brain text-2xl md:text-3xl text-white'></i>
                             </div>
                             <div>
-                                <h2 class="text-2xl font-bold">Assistente Executivo TI</h2>
-                                <p class="text-purple-100 text-sm">IA conectada ao estoque em tempo real.</p>
+                                <h2 class="text-xl md:text-2xl font-bold">Assistente Executivo</h2>
+                                <p class="text-purple-100 text-xs md:text-sm">IA conectada ao estoque em tempo real.</p>
                             </div>
                         </div>
-                        <p class="mb-6 text-purple-50">Gere relatórios de compra, identifique gargalos e receba sugestões baseadas no consumo do hospital.</p>
-                        <button id="ask-ai-btn" onclick="window.callAI()" class="bg-white text-purple-700 px-6 py-3 rounded-xl font-bold hover:bg-purple-50 transition shadow-lg flex items-center gap-2">
-                            <i class='bx bxs-file-pdf'></i> Gerar Relatório de Compras
+                        <p class="mb-6 text-purple-50 text-sm md:text-base">Análise preditiva de compras e consumo.</p>
+                        <button id="ask-ai-btn" onclick="window.callAI()" class="bg-white text-purple-700 px-4 md:px-6 py-2 md:py-3 rounded-xl font-bold hover:bg-purple-50 transition shadow-lg flex items-center gap-2 text-sm md:text-base">
+                            <i class='bx bxs-file-pdf'></i> Gerar Relatório
                         </button>
                     </div>
-                    <div id="ai-response" class="hidden bg-white rounded-2xl p-8 shadow-lg border border-gray-100 text-gray-700 leading-relaxed space-y-4 animate-fade-in-up"></div>
+                    <div id="ai-response" class="hidden bg-white rounded-xl p-4 md:p-8 shadow-lg border border-gray-100 text-gray-700 leading-relaxed space-y-4 animate-fade-in-up text-sm md:text-base"></div>
                 </div>
             </div>
 
             <div id="tab-admin" class="tab-content hidden">
-                <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div class="p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="p-4 md:p-6 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                         <div>
-                            <h2 class="text-xl font-bold text-gray-800">Controle de Acesso</h2>
-                            <p class="text-sm text-gray-500">Aprovar ou bloquear técnicos.</p>
+                            <h2 class="text-lg md:text-xl font-bold text-gray-800">Usuários</h2>
+                            <p class="text-xs md:text-sm text-gray-500">Gestão de acessos.</p>
                         </div>
                         <i class='bx bxs-lock-open-alt text-2xl text-gray-400'></i>
                     </div>
@@ -197,7 +193,7 @@
             </div>
         </main>
 
-        <footer class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 py-2 text-center z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <footer class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-gray-200 py-2 text-center z-40">
             <p class="text-[10px] text-gray-400 font-medium">
                 Desenvolvido com 🤖 por <strong class="text-blue-600">thIAguinho Soluções</strong>
             </p>
@@ -205,59 +201,66 @@
     </div>
 
     <div id="item-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300">
-            <div class="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 transition-transform duration-300 flex flex-col max-h-[90vh]">
+            <div class="bg-gray-50 px-5 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-gray-800 text-lg">Ficha do Equipamento</h3>
                 <button onclick="closeModal('item-modal')" class="text-gray-400 hover:text-red-500"><i class='bx bx-x text-2xl'></i></button>
             </div>
-            <form id="item-form" class="p-6 space-y-4">
+            
+            <form id="item-form" class="p-5 space-y-4 overflow-y-auto">
                 <input type="hidden" id="item-id">
+                
+                <div id="seq-display-field" class="hidden bg-blue-50 p-3 rounded-lg border border-blue-100 mb-2">
+                    <label class="block text-xs font-bold text-blue-600 uppercase">ID Sequencial (Automático)</label>
+                    <input type="text" id="i-seq-val" class="w-full bg-transparent font-mono font-bold text-lg text-blue-800 outline-none" readonly>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nome do Equipamento</label>
-                    <input type="text" id="i-name" placeholder="Ex: Monitor Dell 24pol" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                    <input type="text" id="i-name" placeholder="Ex: Monitor Dell 24pol" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-sm" required>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Categoria</label>
-                        <input type="text" id="i-cat" placeholder="Ex: Periféricos" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" id="i-cat" placeholder="Ex: Periféricos" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" required>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Patrimônio</label>
-                        <input type="text" id="i-pat" placeholder="Ex: HB-0092" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Patrimônio (Opcional)</label>
+                        <input type="text" id="i-pat" placeholder="Ex: HB-0092" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm">
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 items-center">
+                <div class="grid grid-cols-2 gap-3 items-center">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Estoque Mínimo</label>
-                        <input type="number" id="i-min" value="5" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="number" id="i-min" value="5" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" required>
                     </div>
                     <div>
-                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Foto (Opcional)</label>
-                         <label class="cursor-pointer flex items-center gap-2 p-2 border border-dashed border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm text-gray-500">
-                            <i class='bx bx-camera'></i> <span id="file-label">Escolher arquivo</span>
+                         <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Foto</label>
+                         <label class="cursor-pointer flex items-center justify-center gap-2 p-3 border border-dashed border-gray-300 rounded-xl hover:bg-gray-50 transition text-sm text-gray-500 bg-gray-50">
+                            <i class='bx bx-camera'></i> <span id="file-label">Anexar</span>
                             <input type="file" id="file-input" class="hidden" accept="image/*">
                          </label>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Especificações Técnicas</label>
-                    <textarea id="i-desc" placeholder="Detalhes técnicos para o pessoal da TI..." class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows="2"></textarea>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Especificações</label>
+                    <textarea id="i-desc" placeholder="Detalhes técnicos..." class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm" rows="2"></textarea>
                 </div>
                 
-                <div class="pt-2">
-                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95">Salvar no Inventário</button>
+                <div class="pt-2 shrink-0">
+                    <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95 text-sm">Salvar no Inventário</button>
                 </div>
             </form>
         </div>
     </div>
 
     <div id="move-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4 opacity-0 transition-opacity duration-300">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300">
-            <div class="p-6 pb-0">
-                <h3 id="move-title" class="text-xl font-bold text-gray-800 mb-1">Movimentação</h3>
-                <p class="text-xs text-gray-500">Preencha todos os campos para auditoria.</p>
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 transition-transform duration-300">
+            <div class="p-5 pb-0">
+                <h3 id="move-title" class="text-lg font-bold text-gray-800 mb-1">Movimentação</h3>
+                <p class="text-xs text-gray-500">Dados obrigatórios para auditoria.</p>
             </div>
-            <form id="move-form" class="p-6 space-y-4">
+            <form id="move-form" class="p-5 space-y-4">
                 <input type="hidden" id="move-id">
                 <input type="hidden" id="move-type">
                 
@@ -267,28 +270,27 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor / Local de Destino</label>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Setor / Local</label>
                     <div class="relative">
                         <i class='bx bxs-map-pin absolute top-3.5 left-3 text-gray-400'></i>
-                        <input type="text" id="m-sector" class="w-full pl-10 p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ex: UTI Neonatal, Sala 4..." required>
+                        <input type="text" id="m-sector" class="w-full pl-10 p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-sm" placeholder="Ex: UTI Neonatal, Sala 4..." required>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Justificativa Técnica</label>
-                    <textarea id="m-just" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows="2" placeholder="Motivo da retirada/entrada..." required></textarea>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Justificativa</label>
+                    <textarea id="m-just" class="w-full p-3 border border-gray-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none text-sm" rows="2" placeholder="Motivo..." required></textarea>
                 </div>
 
                 <div class="flex gap-3 pt-2">
-                    <button type="button" onclick="closeModal('move-modal')" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition">Cancelar</button>
-                    <button type="submit" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95">Confirmar</button>
+                    <button type="button" onclick="closeModal('move-modal')" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-bold hover:bg-gray-200 transition text-sm">Cancelar</button>
+                    <button type="submit" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95 text-sm">Confirmar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        // Tab Switcher Simples
         function switchTab(id) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.getElementById('tab-' + id).classList.remove('hidden');
