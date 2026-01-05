@@ -1,5 +1,5 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Lógica de Negócio e Auditoria
+// MÓDULO ESTOQUE: Sequencial Automático e Escala Mobile
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -16,50 +16,72 @@
                 return;
             }
 
-            snap.forEach(c => {
-                const item = c.val();
-                const id = c.key;
-                
+            // Converte para array para ordenar (opcional, mas bom para sequencial)
+            const items = [];
+            snap.forEach(c => items.push({ ...c.val(), id: c.key }));
+            
+            // Ordena por sequencial (do maior para o menor, ou vice-versa)
+            items.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
+
+            items.forEach(item => {
                 // Lógica de Status (Badges)
-                let statusBadge = '<span class="px-2 py-1 rounded-md text-xs font-bold bg-green-100 text-green-700">OK</span>';
+                let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
                 let borderClass = 'border-gray-100';
                 
                 if(item.qty == 0) {
-                    statusBadge = '<span class="px-2 py-1 rounded-md text-xs font-bold bg-red-100 text-red-700">ZERADO</span>';
-                    borderClass = 'border-red-200 bg-red-50/50';
+                    statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-700">ZERADO</span>';
+                    borderClass = 'border-red-200 bg-red-50/30';
                 } else if (item.qty <= item.minQty) {
-                    statusBadge = '<span class="px-2 py-1 rounded-md text-xs font-bold bg-orange-100 text-orange-700">BAIXO</span>';
+                    statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700">BAIXO</span>';
                     borderClass = 'border-orange-200';
                 }
 
                 // Renderização condicional do botão de Delete
                 const deleteHtml = isAdmin 
-                    ? `<button onclick="window.deleteItem('${id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
+                    ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
                     : '';
 
                 const imgHtml = item.image 
-                    ? `<img src="${item.image}" class="w-16 h-16 rounded-lg object-cover border border-gray-200 cursor-pointer hover:scale-105 transition" onclick="window.open('${item.image}')">`
-                    : `<div class="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200"><i class='bx bx-image text-2xl'></i></div>`;
+                    ? `<img src="${item.image}" class="w-14 h-14 md:w-16 md:h-16 rounded-lg object-cover border border-gray-200 cursor-pointer hover:scale-105 transition shrink-0" onclick="window.open('${item.image}')">`
+                    : `<div class="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200 shrink-0"><i class='bx bx-image text-2xl'></i></div>`;
 
+                // Formata o ID Sequencial (ex: 0045)
+                const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
+
+                // Layout Responsivo: Flex Column no Mobile, Row no Desktop
                 list.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col md:flex-row gap-4 items-start md:items-center">
-                        ${imgHtml}
-                        <div class="flex-grow">
-                            <div class="flex justify-between items-start">
-                                <h3 class="font-bold text-gray-800 text-lg">${item.name}</h3>
-                                ${statusBadge}
-                            </div>
-                            <p class="text-sm text-gray-500 mb-1">${item.category} • Pat: <strong class="text-gray-700">${item.patrimony || 'S/N'}</strong></p>
-                            <div class="flex items-center gap-2 mt-1">
-                                <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Mín: ${item.minQty}</span>
-                                <span class="text-sm font-bold text-blue-900">Estoque Atual: ${item.qty}</span>
+                    <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            ${imgHtml}
+                            <div class="flex-grow sm:w-48 lg:w-64 overflow-hidden">
+                                <div class="flex justify-between items-center sm:block">
+                                    <h3 class="font-bold text-gray-800 text-sm md:text-base truncate leading-tight">${item.name}</h3>
+                                    <div class="sm:hidden">${statusBadge}</div>
+                                </div>
+                                <p class="text-xs text-blue-600 font-mono font-bold mt-0.5">${seqDisplay}</p>
+                                <p class="text-xs text-gray-500 truncate">${item.category}</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 w-full md:w-auto border-t md:border-t-0 pt-3 md:pt-0 mt-2 md:mt-0 justify-end">
-                            <button onclick="window.openMove('${id}', 'in')" class="flex-1 md:flex-none px-3 py-2 bg-green-50 text-green-700 rounded-lg text-sm font-bold hover:bg-green-100 transition border border-green-200"><i class='bx bx-plus'></i> Entrar</button>
-                            <button onclick="window.openMove('${id}', 'out')" class="flex-1 md:flex-none px-3 py-2 bg-orange-50 text-orange-700 rounded-lg text-sm font-bold hover:bg-orange-100 transition border border-orange-200"><i class='bx bx-minus'></i> Sair</button>
-                            <div class="w-px h-6 bg-gray-300 mx-1 hidden md:block"></div>
-                            <button onclick="window.editItem('${id}')" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class='bx bx-edit-alt text-lg'></i></button>
+
+                        <div class="flex-grow w-full sm:w-auto flex justify-between sm:justify-center items-center gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
+                            <div class="text-left sm:text-center">
+                                <p class="text-[10px] text-gray-400 uppercase">Patrimônio</p>
+                                <p class="text-xs font-bold text-gray-700">${item.patrimony || '-'}</p>
+                            </div>
+                            <div class="text-right sm:text-center">
+                                <p class="text-[10px] text-gray-400 uppercase">Estoque</p>
+                                <div class="flex items-center justify-end sm:justify-center gap-2">
+                                    <span class="text-sm font-bold text-blue-900">${item.qty}</span>
+                                    <span class="hidden sm:inline-block">${statusBadge}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                            <button onclick="window.openMove('${item.id}', 'in')" class="flex-1 sm:flex-none px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs md:text-sm font-bold hover:bg-green-100 transition border border-green-200 flex items-center justify-center gap-1"><i class='bx bx-plus'></i><span class="sm:hidden md:inline">Entrar</span></button>
+                            <button onclick="window.openMove('${item.id}', 'out')" class="flex-1 sm:flex-none px-3 py-2 bg-orange-50 text-orange-700 rounded-lg text-xs md:text-sm font-bold hover:bg-orange-100 transition border border-orange-200 flex items-center justify-center gap-1"><i class='bx bx-minus'></i><span class="sm:hidden md:inline">Sair</span></button>
+                            <div class="w-px h-6 bg-gray-300 mx-1 hidden sm:block"></div>
+                            <button onclick="window.editItem('${item.id}')" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class='bx bx-edit-alt text-lg'></i></button>
                             ${deleteHtml}
                         </div>
                     </div>
@@ -78,32 +100,30 @@
 
             histDiv.innerHTML = '';
             if(arr.length === 0) {
-                histDiv.innerHTML = '<p class="text-center py-8 text-gray-400 italic">Nenhum registro de auditoria.</p>';
+                histDiv.innerHTML = '<p class="text-center py-8 text-gray-400 italic text-sm">Nenhum registro de auditoria.</p>';
                 return;
             }
 
             arr.forEach(m => {
                 const isOut = m.type === 'out';
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-500' : 'bx-up-arrow-circle text-green-500';
-                const bg = isOut ? 'bg-orange-50' : 'bg-green-50';
-
+                
                 histDiv.innerHTML += `
-                    <div class="p-4 hover:bg-gray-50 transition flex gap-4 items-start">
-                        <div class="mt-1"><i class='bx ${icon} text-3xl'></i></div>
-                        <div class="flex-grow">
+                    <div class="p-3 md:p-4 hover:bg-gray-50 transition flex gap-3 items-start border-b border-gray-50 last:border-0">
+                        <div class="mt-1 shrink-0"><i class='bx ${icon} text-2xl md:text-3xl'></i></div>
+                        <div class="flex-grow min-w-0">
                             <div class="flex justify-between items-start">
-                                <h4 class="font-bold text-gray-800 text-sm">${m.itemName}</h4>
-                                <span class="text-xs text-gray-400 font-mono">${new Date(m.timestamp).toLocaleString('pt-BR')}</span>
+                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
+                                <span class="text-[10px] text-gray-400 font-mono whitespace-nowrap">${new Date(m.timestamp).toLocaleDateString('pt-BR')} ${new Date(m.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <div class="text-xs text-gray-600 mt-1 grid grid-cols-2 gap-2">
-                                <div><span class="font-bold">Responsável:</span> ${m.userName}</div>
-                                <div><span class="font-bold">Setor:</span> ${m.sector || 'N/A'}</div>
+                            <div class="text-xs text-gray-600 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
+                                <div class="truncate"><span class="font-bold">Resp:</span> ${m.userName}</div>
+                                <div class="truncate"><span class="font-bold">Setor:</span> ${m.sector || 'N/A'}</div>
                             </div>
-                            <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-gray-200 pl-2">"${m.justification}"</p>
+                            <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-gray-200 pl-2 break-words">"${m.justification}"</p>
                         </div>
-                        <div class="text-right">
-                            <span class="block text-lg font-bold ${isOut ? 'text-orange-600' : 'text-green-600'}">${isOut ? '-' : '+'}${m.qty}</span>
-                            <span class="text-[10px] uppercase font-bold text-gray-400">${isOut ? 'Saída' : 'Entrada'}</span>
+                        <div class="text-right shrink-0 min-w-[3rem]">
+                            <span class="block text-base md:text-lg font-bold ${isOut ? 'text-orange-600' : 'text-green-600'}">${isOut ? '-' : '+'}${m.qty}</span>
                         </div>
                     </div>
                 `;
@@ -128,7 +148,6 @@
     window.openMove = (id, type) => {
         const m = document.getElementById('move-modal');
         m.classList.remove('hidden');
-        // Reset classes para garantir transição
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
 
         document.getElementById('move-id').value = id;
@@ -136,8 +155,8 @@
         
         const title = document.getElementById('move-title');
         title.innerHTML = type === 'in' 
-            ? '<span class="text-green-600 flex items-center gap-2"><i class="bx bx-log-in-circle"></i> Entrada de Material</span>' 
-            : '<span class="text-orange-600 flex items-center gap-2"><i class="bx bx-log-out-circle"></i> Saída / Baixa</span>';
+            ? '<span class="text-green-600 flex items-center gap-2"><i class="bx bx-log-in-circle"></i> Entrada</span>' 
+            : '<span class="text-orange-600 flex items-center gap-2"><i class="bx bx-log-out-circle"></i> Saída</span>';
         
         document.getElementById('m-qty').value = '';
         document.getElementById('m-sector').value = '';
@@ -178,11 +197,11 @@
         finally { btn.innerHTML = oldHtml; btn.disabled = false; }
     });
 
-    // --- Item CRUD (Similar logic, condensed for brevity but full function) ---
     window.openItemModal = () => {
         const m = document.getElementById('item-modal'); m.classList.remove('hidden');
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
         document.getElementById('item-form').reset(); document.getElementById('item-id').value = '';
+        document.getElementById('seq-display-field').classList.add('hidden'); // Esconde no cadastro novo
     };
 
     window.closeModal = (id) => {
@@ -199,6 +218,17 @@
         document.getElementById('i-pat').value = i.patrimony || '';
         document.getElementById('i-min').value = i.minQty;
         document.getElementById('i-desc').value = i.description || '';
+        
+        // Mostra o sequencial na edição
+        const seqField = document.getElementById('seq-display-field');
+        const seqVal = document.getElementById('i-seq-val');
+        if(i.seqId) {
+            seqField.classList.remove('hidden');
+            seqVal.value = `#${String(i.seqId).padStart(4, '0')}`;
+        } else {
+            seqField.classList.add('hidden');
+        }
+
         const m = document.getElementById('item-modal'); m.classList.remove('hidden');
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
     };
@@ -216,6 +246,7 @@
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
         const oldHtml = btn.innerHTML; btn.innerHTML = 'Salvando...'; btn.disabled = true;
+        
         try {
             const id = document.getElementById('item-id').value;
             const d = {
@@ -226,11 +257,27 @@
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
             };
-            if(!id) d.qty = 0;
+            
             if(selectedImageFile) d.image = await uploadImg(selectedImageFile);
 
-            if(id) await App.db.ref(`inventory/${id}`).update(d);
-            else await App.db.ref('inventory').push(d);
+            if(!id) {
+                // NOVO ITEM: GERA SEQUENCIAL E QTD 0
+                d.qty = 0;
+                
+                // Transação para pegar o próximo número sequencial
+                const seqRef = App.db.ref('config/seqCounter');
+                const result = await seqRef.transaction((current) => {
+                    return (current || 0) + 1;
+                });
+                
+                d.seqId = result.snapshot.val();
+                
+                await App.db.ref('inventory').push(d);
+            } else {
+                // ATUALIZAÇÃO
+                await App.db.ref(`inventory/${id}`).update(d);
+            }
+            
             window.closeModal('item-modal'); selectedImageFile = null;
         } catch(e) { alert(e.message); } finally { btn.innerHTML = oldHtml; btn.disabled = false; }
     });
