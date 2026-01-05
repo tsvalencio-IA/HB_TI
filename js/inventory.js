@@ -1,95 +1,130 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial Automático e Escala Mobile
+// MÓDULO ESTOQUE: Sequencial, Busca e Localização Física
 // ==================================================================
 (function() {
     const App = window.HBTech;
     let selectedImageFile = null;
+    let allItemsCache = []; // Cache para busca rápida
 
     window.loadInventory = function() {
         const list = document.getElementById('inventory-list');
+        const searchInput = document.getElementById('inventory-search');
         const isAdmin = App.userProfile.role === 'admin';
 
+        // Listener de Busca
+        searchInput.addEventListener('input', (e) => {
+            renderItems(e.target.value);
+        });
+
         App.db.ref('inventory').on('value', snap => {
-            list.innerHTML = '';
+            allItemsCache = []; // Limpa cache
             if(!snap.exists()) {
-                list.innerHTML = `<div class="text-center py-10 text-gray-400"><i class='bx bx-box text-5xl mb-2'></i><p>Estoque vazio.</p></div>`;
+                renderItems(''); // Renderiza vazio
                 return;
             }
 
-            // Converte para array para ordenar (opcional, mas bom para sequencial)
-            const items = [];
-            snap.forEach(c => items.push({ ...c.val(), id: c.key }));
+            snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
             
-            // Ordena por sequencial (do maior para o menor, ou vice-versa)
-            items.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
-
-            items.forEach(item => {
-                // Lógica de Status (Badges)
-                let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
-                let borderClass = 'border-gray-100';
-                
-                if(item.qty == 0) {
-                    statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-700">ZERADO</span>';
-                    borderClass = 'border-red-200 bg-red-50/30';
-                } else if (item.qty <= item.minQty) {
-                    statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700">BAIXO</span>';
-                    borderClass = 'border-orange-200';
-                }
-
-                // Renderização condicional do botão de Delete
-                const deleteHtml = isAdmin 
-                    ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
-                    : '';
-
-                const imgHtml = item.image 
-                    ? `<img src="${item.image}" class="w-14 h-14 md:w-16 md:h-16 rounded-lg object-cover border border-gray-200 cursor-pointer hover:scale-105 transition shrink-0" onclick="window.open('${item.image}')">`
-                    : `<div class="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200 shrink-0"><i class='bx bx-image text-2xl'></i></div>`;
-
-                // Formata o ID Sequencial (ex: 0045)
-                const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
-
-                // Layout Responsivo: Flex Column no Mobile, Row no Desktop
-                list.innerHTML += `
-                    <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                        <div class="flex items-center gap-3 w-full sm:w-auto">
-                            ${imgHtml}
-                            <div class="flex-grow sm:w-48 lg:w-64 overflow-hidden">
-                                <div class="flex justify-between items-center sm:block">
-                                    <h3 class="font-bold text-gray-800 text-sm md:text-base truncate leading-tight">${item.name}</h3>
-                                    <div class="sm:hidden">${statusBadge}</div>
-                                </div>
-                                <p class="text-xs text-blue-600 font-mono font-bold mt-0.5">${seqDisplay}</p>
-                                <p class="text-xs text-gray-500 truncate">${item.category}</p>
-                            </div>
-                        </div>
-
-                        <div class="flex-grow w-full sm:w-auto flex justify-between sm:justify-center items-center gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
-                            <div class="text-left sm:text-center">
-                                <p class="text-[10px] text-gray-400 uppercase">Patrimônio</p>
-                                <p class="text-xs font-bold text-gray-700">${item.patrimony || '-'}</p>
-                            </div>
-                            <div class="text-right sm:text-center">
-                                <p class="text-[10px] text-gray-400 uppercase">Estoque</p>
-                                <div class="flex items-center justify-end sm:justify-center gap-2">
-                                    <span class="text-sm font-bold text-blue-900">${item.qty}</span>
-                                    <span class="hidden sm:inline-block">${statusBadge}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
-                            <button onclick="window.openMove('${item.id}', 'in')" class="flex-1 sm:flex-none px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs md:text-sm font-bold hover:bg-green-100 transition border border-green-200 flex items-center justify-center gap-1"><i class='bx bx-plus'></i><span class="sm:hidden md:inline">Entrar</span></button>
-                            <button onclick="window.openMove('${item.id}', 'out')" class="flex-1 sm:flex-none px-3 py-2 bg-orange-50 text-orange-700 rounded-lg text-xs md:text-sm font-bold hover:bg-orange-100 transition border border-orange-200 flex items-center justify-center gap-1"><i class='bx bx-minus'></i><span class="sm:hidden md:inline">Sair</span></button>
-                            <div class="w-px h-6 bg-gray-300 mx-1 hidden sm:block"></div>
-                            <button onclick="window.editItem('${item.id}')" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class='bx bx-edit-alt text-lg'></i></button>
-                            ${deleteHtml}
-                        </div>
-                    </div>
-                `;
-            });
+            // Ordena por sequencial (do maior para o menor)
+            allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
+            
+            renderItems(searchInput.value);
         });
+
         loadHistory();
     };
+
+    function renderItems(searchTerm) {
+        const list = document.getElementById('inventory-list');
+        const isAdmin = App.userProfile.role === 'admin';
+        list.innerHTML = '';
+
+        // Filtra itens
+        const term = searchTerm.toLowerCase();
+        const filteredItems = allItemsCache.filter(item => {
+            const name = (item.name || '').toLowerCase();
+            const pat = (item.patrimony || '').toLowerCase();
+            const cat = (item.category || '').toLowerCase();
+            const loc = (item.location || '').toLowerCase();
+            const seq = item.seqId ? String(item.seqId) : '';
+            
+            return name.includes(term) || pat.includes(term) || cat.includes(term) || loc.includes(term) || seq.includes(term);
+        });
+
+        if (filteredItems.length === 0) {
+            list.innerHTML = `<div class="text-center py-10 text-gray-400"><i class='bx bx-search text-5xl mb-2'></i><p>Nenhum item encontrado.</p></div>`;
+            return;
+        }
+
+        filteredItems.forEach(item => {
+            // Lógica de Status (Badges)
+            let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
+            let borderClass = 'border-gray-100';
+            
+            if(item.qty == 0) {
+                statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-700">ZERADO</span>';
+                borderClass = 'border-red-200 bg-red-50/30';
+            } else if (item.qty <= item.minQty) {
+                statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700">BAIXO</span>';
+                borderClass = 'border-orange-200';
+            }
+
+            const deleteHtml = isAdmin 
+                ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
+                : '';
+
+            const imgHtml = item.image 
+                ? `<img src="${item.image}" class="w-14 h-14 md:w-16 md:h-16 rounded-lg object-cover border border-gray-200 cursor-pointer hover:scale-105 transition shrink-0" onclick="window.open('${item.image}')">`
+                : `<div class="w-14 h-14 md:w-16 md:h-16 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border border-gray-200 shrink-0"><i class='bx bx-image text-2xl'></i></div>`;
+
+            const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
+
+            // Layout Card com LOCALIZAÇÃO
+            list.innerHTML += `
+                <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        ${imgHtml}
+                        <div class="flex-grow sm:w-48 lg:w-64 overflow-hidden">
+                            <div class="flex justify-between items-center sm:block">
+                                <h3 class="font-bold text-gray-800 text-sm md:text-base truncate leading-tight">${item.name}</h3>
+                                <div class="sm:hidden">${statusBadge}</div>
+                            </div>
+                            <p class="text-xs text-blue-600 font-mono font-bold mt-0.5">${seqDisplay}</p>
+                            <p class="text-xs text-gray-500 truncate">${item.category}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex-grow w-full sm:w-auto grid grid-cols-2 sm:flex sm:justify-center items-center gap-2 sm:gap-6 border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
+                        <div class="text-left sm:text-center">
+                            <p class="text-[10px] text-gray-400 uppercase">Patrimônio</p>
+                            <p class="text-xs font-bold text-gray-700 truncate">${item.patrimony || '-'}</p>
+                        </div>
+                        <div class="text-right sm:text-center">
+                            <p class="text-[10px] text-gray-400 uppercase">Local / Armário</p>
+                            <p class="text-xs font-bold text-gray-700 truncate max-w-[100px] sm:max-w-none ml-auto sm:ml-0" title="${item.location || 'Não informado'}">
+                                <i class='bx bx-map text-gray-400'></i> ${item.location || '-'}
+                            </p>
+                        </div>
+                        <div class="col-span-2 sm:col-span-1 text-center border-t sm:border-t-0 pt-2 sm:pt-0 mt-1 sm:mt-0">
+                            <p class="text-[10px] text-gray-400 uppercase">Estoque</p>
+                            <div class="flex items-center justify-center gap-2">
+                                <span class="text-sm font-bold text-blue-900">${item.qty}</span>
+                                <span class="hidden sm:inline-block">${statusBadge}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-3 sm:pt-0">
+                        <button onclick="window.openMove('${item.id}', 'in')" class="flex-1 sm:flex-none px-3 py-2 bg-green-50 text-green-700 rounded-lg text-xs md:text-sm font-bold hover:bg-green-100 transition border border-green-200 flex items-center justify-center gap-1"><i class='bx bx-plus'></i><span class="sm:hidden md:inline">Entrar</span></button>
+                        <button onclick="window.openMove('${item.id}', 'out')" class="flex-1 sm:flex-none px-3 py-2 bg-orange-50 text-orange-700 rounded-lg text-xs md:text-sm font-bold hover:bg-orange-100 transition border border-orange-200 flex items-center justify-center gap-1"><i class='bx bx-minus'></i><span class="sm:hidden md:inline">Sair</span></button>
+                        <div class="w-px h-6 bg-gray-300 mx-1 hidden sm:block"></div>
+                        <button onclick="window.editItem('${item.id}')" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"><i class='bx bx-edit-alt text-lg'></i></button>
+                        ${deleteHtml}
+                    </div>
+                </div>
+            `;
+        });
+    }
 
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
@@ -118,7 +153,7 @@
                             </div>
                             <div class="text-xs text-gray-600 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
                                 <div class="truncate"><span class="font-bold">Resp:</span> ${m.userName}</div>
-                                <div class="truncate"><span class="font-bold">Setor:</span> ${m.sector || 'N/A'}</div>
+                                <div class="truncate"><span class="font-bold">Destino:</span> ${m.sector || 'N/A'}</div>
                             </div>
                             <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-gray-200 pl-2 break-words">"${m.justification}"</p>
                         </div>
@@ -201,7 +236,7 @@
         const m = document.getElementById('item-modal'); m.classList.remove('hidden');
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
         document.getElementById('item-form').reset(); document.getElementById('item-id').value = '';
-        document.getElementById('seq-display-field').classList.add('hidden'); // Esconde no cadastro novo
+        document.getElementById('seq-display-field').classList.add('hidden');
     };
 
     window.closeModal = (id) => {
@@ -216,10 +251,11 @@
         document.getElementById('i-name').value = i.name;
         document.getElementById('i-cat').value = i.category;
         document.getElementById('i-pat').value = i.patrimony || '';
+        document.getElementById('i-loc').value = i.location || ''; // Carrega Localização
         document.getElementById('i-min').value = i.minQty;
         document.getElementById('i-desc').value = i.description || '';
         
-        // Mostra o sequencial na edição
+        // Sequencial
         const seqField = document.getElementById('seq-display-field');
         const seqVal = document.getElementById('i-seq-val');
         if(i.seqId) {
@@ -234,7 +270,7 @@
     };
 
     window.deleteItem = (id) => {
-        if(confirm("ATENÇÃO HOSPITALAR:\n\nExcluir o cadastro apaga o histórico de rastreabilidade.\nPara descarte, use SAÍDA.\n\nConfirmar exclusão?")) {
+        if(confirm("ATENÇÃO HOSPITALAR:\n\nExcluir o cadastro apaga o histórico.\nPara descarte, use SAÍDA.\n\nConfirmar exclusão?")) {
             App.db.ref(`inventory/${id}`).remove();
         }
     };
@@ -253,6 +289,7 @@
                 name: document.getElementById('i-name').value,
                 category: document.getElementById('i-cat').value,
                 patrimony: document.getElementById('i-pat').value,
+                location: document.getElementById('i-loc').value, // Salva Localização
                 minQty: parseInt(document.getElementById('i-min').value),
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
@@ -261,20 +298,14 @@
             if(selectedImageFile) d.image = await uploadImg(selectedImageFile);
 
             if(!id) {
-                // NOVO ITEM: GERA SEQUENCIAL E QTD 0
                 d.qty = 0;
-                
-                // Transação para pegar o próximo número sequencial
                 const seqRef = App.db.ref('config/seqCounter');
                 const result = await seqRef.transaction((current) => {
                     return (current || 0) + 1;
                 });
-                
                 d.seqId = result.snapshot.val();
-                
                 await App.db.ref('inventory').push(d);
             } else {
-                // ATUALIZAÇÃO
                 await App.db.ref(`inventory/${id}`).update(d);
             }
             
