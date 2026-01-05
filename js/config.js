@@ -2,7 +2,7 @@
 // ⚙️ CONFIGURAÇÃO HB-TECH INVENTORY
 // =====================================================================
 (function() {
-    // 1. FIREBASE CONFIG (Credenciais do projeto estoque-hb)
+    // 1. FIREBASE CONFIG (Mantida a sua real)
     const firebaseConfig = {
         apiKey: "AIzaSyDVmvA6w5bN_H_tGaC4eSEmdQgHF2H4BAo",
         authDomain: "estoque-hb.firebaseapp.com",
@@ -13,17 +13,17 @@
         appId: "1:201495948592:web:e4bca4aa18411fb3ea6cf5"
     };
 
-    // 2. CLOUDINARY CONFIG (Para imagens do estoque)
+    // 2. CLOUDINARY CONFIG
     const CLOUDINARY_CLOUD_NAME = "djtiaygrs"; 
     const CLOUDINARY_UPLOAD_PRESET = "hb_TI_riopreto"; 
 
     // 3. GEMINI AI CONFIG
-    // Modelo ajustado para 1.5 Flash para garantir conexão estável
+    // MODELO CORRIGIDO PARA O DOS TEUS EXEMPLOS (EXPERIMENTAL 2.0)
     const API_KEY_PART_1 = "AIzaSyAfx1aiuP9jWzGDoh"; 
     const API_KEY_PART_2 = "E6KxZ6_68wZkt27VI"; 
     
     const API_KEY = API_KEY_PART_1 + API_KEY_PART_2;
-    const GEMINI_MODEL = "gemini-1.5-flash"; 
+    const GEMINI_MODEL = "gemini-2.0-flash-exp"; 
 
     // 4. CONTEXTO DO HOSPITAL
     const HOSPITAL_INFO = {
