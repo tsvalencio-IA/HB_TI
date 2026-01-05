@@ -18,14 +18,13 @@
     const CLOUDINARY_UPLOAD_PRESET = "hb_TI_riopreto"; 
 
     // 3. GEMINI AI CONFIG
-    // Dividimos a chave em partes para segurança básica no código cliente
     const API_KEY_PART_1 = "AIzaSyAfx1aiuP9jWzGDoh"; 
     const API_KEY_PART_2 = "E6KxZ6_68wZkt27VI"; 
     
     const API_KEY = API_KEY_PART_1 + API_KEY_PART_2;
-    const GEMINI_MODEL = "gemini-2.0-flash"; // Modelo atualizado conforme solicitado
+    const GEMINI_MODEL = "gemini-2.0-flash"; 
 
-    // 4. CONTEXTO DO HOSPITAL (Para calibrar a IA)
+    // 4. CONTEXTO DO HOSPITAL
     const HOSPITAL_INFO = {
         nome: "Hospital de Base de Rio Preto",
         setor: "Tecnologia da Informação",
