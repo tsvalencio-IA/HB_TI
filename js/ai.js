@@ -18,7 +18,8 @@
             let dataStr = "";
             snap.forEach(c => {
                 const i = c.val();
-                dataStr += `- ${i.name} (Cat: ${i.category}, Qtd: ${i.qty}, Mín: ${i.minQty})\n`;
+                const seq = i.seqId ? `#${String(i.seqId).padStart(4, '0')}` : 'N/A';
+                dataStr += `- [${seq}] ${i.name} (Cat: ${i.category}, Qtd: ${i.qty}, Mín: ${i.minQty})\n`;
             });
 
             const prompt = `
@@ -28,10 +29,10 @@
             ${dataStr}
             
             DIRETRIZES:
-            1. Priorize itens com Qtd <= Mínimo (Urgência Alta).
-            2. Identifique categorias com excesso ou falta crítica.
+            1. Use os códigos [ID] para se referir aos itens.
+            2. Priorize itens com Qtd <= Mínimo (Urgência Alta).
             3. Use linguagem formal hospitalar.
-            4. Formate a resposta em HTML simples (h3, ul, strong).
+            4. Formate a resposta em HTML simples.
             `;
 
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${window.AppConfig.GEMINI_MODEL}:generateContent?key=${window.AppConfig.API_KEY}`;
@@ -44,7 +45,7 @@
 
             const json = await res.json();
             const text = json.candidates[0].content.parts[0].text
-                .replace(/```html/g, '').replace(/```/g, ''); // Limpa markdown
+                .replace(/```html/g, '').replace(/```/g, ''); 
 
             output.innerHTML = text;
             output.classList.remove('hidden');
