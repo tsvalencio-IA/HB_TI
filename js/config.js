@@ -14,8 +14,8 @@
 };
 
     // 2. CONFIGURAÇÃO CLOUDINARY (Para fotos dos equipamentos)
-    const CLOUDINARY_CLOUD_NAME = "COLE_SEU_CLOUD_NAME_AQUI"; 
-    const CLOUDINARY_UPLOAD_PRESET = "COLE_SEU_PRESET_UNSIGNED_AQUI"; // Lembre de criar um preset "unsigned" no painel do Cloudinary
+    const CLOUDINARY_CLOUD_NAME = "djtiaygrs"; 
+    const CLOUDINARY_UPLOAD_PRESET = "hb_TI_riopreto"; // Lembre de criar um preset "unsigned" no painel do Cloudinary
 
     // 3. CONFIGURAÇÃO IA (GEMINI)
     // Dividimos a chave em 2 partes para o GitHub não bloquear
