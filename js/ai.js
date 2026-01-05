@@ -1,65 +1,59 @@
 // ==================================================================
-// MÓDULO IA: Integração Gemini 1.5
+// IA: Relatórios Executivos TI
 // ==================================================================
 (function() {
     const App = window.HBTech;
-    
+
     window.callAI = async () => {
         const btn = document.getElementById('ask-ai-btn');
         const output = document.getElementById('ai-response');
         
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Processando dados hospitalares...";
         btn.disabled = true;
-        btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Analisando Estoque...";
-        output.innerHTML = "";
-        output.classList.remove('hidden');
+        output.classList.add('hidden');
 
         try {
-            // 1. Coleta dados do estoque atual
             const snap = await App.db.ref('inventory').once('value');
-            let stockData = "LISTA DE ESTOQUE ATUAL:\n";
-            let criticalItems = [];
-
+            let dataStr = "";
             snap.forEach(c => {
                 const i = c.val();
-                stockData += `- ${i.name} (Qtd: ${i.qty}, Mínimo Ideal: ${i.minQty})\n`;
-                if(i.qty <= i.minQty) criticalItems.push(i.name);
+                dataStr += `- ${i.name} (Cat: ${i.category}, Qtd: ${i.qty}, Mín: ${i.minQty})\n`;
             });
 
-            // 2. Monta o Prompt Especializado
             const prompt = `
-                Você é o Gestor de TI Sênior do ${window.AppConfig.HOSPITAL_INFO.nome}.
-                Sua missão é garantir que nunca faltem equipamentos para salvar vidas.
-                
-                Analise os dados abaixo e gere um relatório técnico:
-                1. Liste itens críticos (abaixo do mínimo) com urgência de compra.
-                2. Sugira ações para a equipe técnica baseadas no estado atual.
-                3. Use linguagem formal, técnica e direta.
-                
-                ${stockData}
+            CONTEXTO: Você é o Gestor Sênior de TI do Hospital de Base de Rio Preto.
+            OBJETIVO: Gerar um relatório executivo de compras e manutenção.
+            DADOS DO ESTOQUE:
+            ${dataStr}
+            
+            DIRETRIZES:
+            1. Priorize itens com Qtd <= Mínimo (Urgência Alta).
+            2. Identifique categorias com excesso ou falta crítica.
+            3. Use linguagem formal hospitalar.
+            4. Formate a resposta em HTML simples (h3, ul, strong).
             `;
 
-            // 3. Chama a API do Gemini
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${window.AppConfig.GEMINI_MODEL}:generateContent?key=${window.AppConfig.API_KEY}`;
             
-            const response = await fetch(url, {
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
             });
 
-            const data = await response.json();
-            const text = data.candidates[0].content.parts[0].text;
+            const json = await res.json();
+            const text = json.candidates[0].content.parts[0].text
+                .replace(/```html/g, '').replace(/```/g, ''); // Limpa markdown
 
-            // 4. Formata a resposta (Markdown simples para HTML)
-            output.innerHTML = text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\n/g, '<br>');
+            output.innerHTML = text;
+            output.classList.remove('hidden');
 
-        } catch (error) {
-            output.innerHTML = `<span class="text-red-500">Erro na IA: ${error.message}</span>`;
+        } catch (e) {
+            alert("Erro na IA: " + e.message);
         } finally {
+            btn.innerHTML = oldHtml;
             btn.disabled = false;
-            btn.innerHTML = "<i class='bx bxs-brain'></i> Gerar Relatório Gerencial";
         }
     };
 })();
