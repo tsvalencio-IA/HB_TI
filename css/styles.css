@@ -1,19 +1,45 @@
-/* Animação suave para IA */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Animações de Entrada */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .animate-fade-in {
-    animation: fadeIn 0.5s ease-in;
+    animation: fadeInUp 0.4s ease-out;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+/* Scrollbar Escondida para navegação mobile */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
-/* Scrollbars personalizadas */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #f1f1f1; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
-/* Botões de aba */
-.tab-btn:hover { background-color: #f3f4f6; }
-.tab-btn.active { background-color: #eff6ff; color: #1d4ed8; }
+/* Modal Transitions */
+#item-modal:not(.hidden), #move-modal:not(.hidden) {
+    display: flex !important;
+    opacity: 1;
+}
+#item-modal.hidden, #move-modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
