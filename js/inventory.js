@@ -1,34 +1,34 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca e Localização Física
+// MÓDULO ESTOQUE: Sequencial, Busca, Auditoria e Localização
 // ==================================================================
 (function() {
     const App = window.HBTech;
     let selectedImageFile = null;
-    let allItemsCache = []; // Cache para busca rápida
+    let allItemsCache = []; 
 
     window.loadInventory = function() {
-        const list = document.getElementById('inventory-list');
         const searchInput = document.getElementById('inventory-search');
-        const isAdmin = App.userProfile.role === 'admin';
-
-        // Listener de Busca
-        searchInput.addEventListener('input', (e) => {
-            renderItems(e.target.value);
-        });
+        
+        // Listener de Busca Instantânea
+        if(searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                renderItems(e.target.value);
+            });
+        }
 
         App.db.ref('inventory').on('value', snap => {
-            allItemsCache = []; // Limpa cache
+            allItemsCache = [];
             if(!snap.exists()) {
-                renderItems(''); // Renderiza vazio
+                renderItems('');
                 return;
             }
 
             snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
             
-            // Ordena por sequencial (do maior para o menor)
+            // Ordena por ID Sequencial (Decrescente - mais novos primeiro)
             allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
             
-            renderItems(searchInput.value);
+            renderItems(searchInput ? searchInput.value : '');
         });
 
         loadHistory();
@@ -39,7 +39,6 @@
         const isAdmin = App.userProfile.role === 'admin';
         list.innerHTML = '';
 
-        // Filtra itens
         const term = searchTerm.toLowerCase();
         const filteredItems = allItemsCache.filter(item => {
             const name = (item.name || '').toLowerCase();
@@ -57,7 +56,7 @@
         }
 
         filteredItems.forEach(item => {
-            // Lógica de Status (Badges)
+            // Badges de Status
             let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
             let borderClass = 'border-gray-100';
             
@@ -79,7 +78,7 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
-            // Layout Card com LOCALIZAÇÃO
+            // CARD DO PRODUTO (Mobile & Desktop)
             list.innerHTML += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -128,7 +127,7 @@
 
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
-        App.db.ref('movements').limitToLast(50).on('value', snap => {
+        App.db.ref('movements').limitToLast(100).on('value', snap => {
             const arr = [];
             snap.forEach(c => arr.push(c.val()));
             arr.reverse();
@@ -139,26 +138,39 @@
                 return;
             }
 
+            // AQUI ESTÁ A CORREÇÃO: Ambos (Entrada e Saída) usam o mesmo layout detalhado
             arr.forEach(m => {
                 const isOut = m.type === 'out';
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-500' : 'bx-up-arrow-circle text-green-500';
+                const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
+                const typeClass = isOut ? 'text-orange-600 bg-orange-50' : 'text-green-600 bg-green-50';
                 
                 histDiv.innerHTML += `
-                    <div class="p-3 md:p-4 hover:bg-gray-50 transition flex gap-3 items-start border-b border-gray-50 last:border-0">
-                        <div class="mt-1 shrink-0"><i class='bx ${icon} text-2xl md:text-3xl'></i></div>
-                        <div class="flex-grow min-w-0">
-                            <div class="flex justify-between items-start">
-                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
-                                <span class="text-[10px] text-gray-400 font-mono whitespace-nowrap">${new Date(m.timestamp).toLocaleDateString('pt-BR')} ${new Date(m.timestamp).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</span>
-                            </div>
-                            <div class="text-xs text-gray-600 mt-1 grid grid-cols-1 sm:grid-cols-2 gap-1">
-                                <div class="truncate"><span class="font-bold">Resp:</span> ${m.userName}</div>
-                                <div class="truncate"><span class="font-bold">Destino:</span> ${m.sector || 'N/A'}</div>
-                            </div>
-                            <p class="text-xs text-gray-500 mt-1 italic border-l-2 border-gray-200 pl-2 break-words">"${m.justification}"</p>
+                    <div class="p-3 md:p-4 hover:bg-gray-50 transition flex gap-3 items-start border-b border-gray-50 last:border-0 relative">
+                        <div class="mt-1 shrink-0">
+                            <i class='bx ${icon} text-2xl md:text-3xl'></i>
                         </div>
-                        <div class="text-right shrink-0 min-w-[3rem]">
-                            <span class="block text-base md:text-lg font-bold ${isOut ? 'text-orange-600' : 'text-green-600'}">${isOut ? '-' : '+'}${m.qty}</span>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex flex-col sm:flex-row justify-between items-start mb-1">
+                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${typeClass} uppercase tracking-wider">${typeText}</span>
+                            </div>
+                            
+                            <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 bg-gray-50/50 p-1.5 rounded-lg border border-gray-100">
+                                <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName}</div>
+                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Destino:</strong> ${m.sector || 'N/A'}</div>
+                            </div>
+
+                            <p class="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2 break-words">
+                                "${m.justification}"
+                            </p>
+                            <span class="text-[10px] text-gray-400 font-mono mt-1 block text-right">${new Date(m.timestamp).toLocaleString('pt-BR')}</span>
+                        </div>
+                        
+                        <div class="absolute top-4 right-4 sm:static sm:text-right shrink-0 min-w-[3rem] flex items-center justify-end h-full">
+                            <span class="text-base md:text-xl font-bold ${isOut ? 'text-orange-600' : 'text-green-600'}">
+                                ${isOut ? '-' : '+'}${m.qty}
+                            </span>
                         </div>
                     </div>
                 `;
@@ -190,8 +202,8 @@
         
         const title = document.getElementById('move-title');
         title.innerHTML = type === 'in' 
-            ? '<span class="text-green-600 flex items-center gap-2"><i class="bx bx-log-in-circle"></i> Entrada</span>' 
-            : '<span class="text-orange-600 flex items-center gap-2"><i class="bx bx-log-out-circle"></i> Saída</span>';
+            ? '<span class="text-green-600 flex items-center gap-2"><i class="bx bx-log-in-circle"></i> Entrada de Material</span>' 
+            : '<span class="text-orange-600 flex items-center gap-2"><i class="bx bx-log-out-circle"></i> Saída / Baixa</span>';
         
         document.getElementById('m-qty').value = '';
         document.getElementById('m-sector').value = '';
@@ -222,9 +234,18 @@
             } else { newQty += qty; }
 
             await ref.update({ qty: newQty });
+            
+            // Grava Auditoria Completa
             await App.db.ref('movements').push({
-                itemId: id, itemName: item.name, type, qty, sector, justification: just,
-                userId: App.currentUser.uid, userName: App.userProfile.name, timestamp: new Date().toISOString()
+                itemId: id, 
+                itemName: item.name, 
+                type, 
+                qty, 
+                sector, // Salva o Destino/Local
+                justification: just,
+                userId: App.currentUser.uid, 
+                userName: App.userProfile.name, 
+                timestamp: new Date().toISOString()
             });
 
             window.closeModal('move-modal');
