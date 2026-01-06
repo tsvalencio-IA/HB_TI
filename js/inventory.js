@@ -1,11 +1,12 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (VISUALIZAÇÃO CORRIGIDA)
+// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (VERSÃO FINAL)
 // ==================================================================
 (function() {
     const App = window.HBTech;
     let selectedImageFile = null;
     let allItemsCache = []; 
 
+    // --- INICIALIZAÇÃO ---
     window.loadInventory = function() {
         const searchInput = document.getElementById('inventory-search');
         
@@ -14,6 +15,12 @@
             searchInput.addEventListener('input', (e) => {
                 renderItems(e.target.value);
             });
+        }
+
+        // Verifica conexão antes de iniciar
+        if (!App.db) {
+            console.error("Erro Crítico: Banco de Dados não inicializado.");
+            return;
         }
 
         // Carrega Estoque (Lista de Produtos)
@@ -32,13 +39,14 @@
             renderItems(searchInput ? searchInput.value : '');
         });
 
-        // Carrega Histórico (Auditoria de Movimentações)
+        // Inicia o monitoramento da Auditoria
         loadHistory();
     };
 
+    // --- RENDERIZAÇÃO DO ESTOQUE (COM BUSCA) ---
     function renderItems(searchTerm) {
         const list = document.getElementById('inventory-list');
-        const isAdmin = App.userProfile.role === 'admin';
+        const isAdmin = App.userProfile && App.userProfile.role === 'admin';
         list.innerHTML = '';
 
         const term = searchTerm.toLowerCase();
@@ -80,7 +88,7 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
-            // CARD DO PRODUTO (Mobile & Desktop)
+            // CARD DO PRODUTO (Responsivo)
             list.innerHTML += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
@@ -127,10 +135,13 @@
         });
     }
 
-    // --- FUNÇÃO "QUEM EXIBE" CORRIGIDA ---
+    // --- FUNÇÃO DE AUDITORIA CORRIGIDA (O ERRO ESTAVA AQUI) ---
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
         if (!histDiv) return;
+
+        // Limpa lista se o banco não estiver pronto
+        if (!App.db) return;
 
         App.db.ref('movements').limitToLast(100).on('value', snap => {
             if (!snap.exists()) {
@@ -142,25 +153,24 @@
             snap.forEach(c => arr.push(c.val()));
             arr.reverse(); // Mais recente primeiro
 
-            // Construímos o HTML numa variável separada para evitar erros de renderização parcial
+            // Construção Otimizada do HTML (String Buffer)
             let htmlContent = '';
 
             arr.forEach(m => {
-                // Proteção contra registros vazios ou corrompidos
-                if (!m) return;
+                if (!m) return; // Pula registros inválidos
 
-                // Verificação segura do tipo
+                // Detecção de tipo (Compatível com dados antigos)
                 const typeStr = String(m.type || '').toLowerCase();
                 const isOut = (typeStr === 'out' || typeStr === 'saida');
                 
-                // Definição visual
+                // Variáveis visuais
                 const icon = isOut ? 'bx-down-arrow-circle text-orange-600' : 'bx-up-arrow-circle text-green-600';
                 const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
                 const typeBg = isOut ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
                 const qtyClass = isOut ? 'text-orange-600' : 'text-green-600';
                 const signal = isOut ? '-' : '+';
                 
-                // Formatação segura da data
+                // Tratamento seguro de data
                 let dateDisplay = '-';
                 if (m.timestamp) {
                     try {
@@ -200,11 +210,12 @@
                 `;
             });
 
-            // Só agora injetamos no HTML (Segurança máxima)
+            // Injeção ÚNICA no DOM (Evita erros de renderização)
             histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro ao carregar lista.</p>';
         });
     }
 
+    // --- UPLOAD CLOUDINARY ---
     async function uploadImg(file) {
         const url = `https://api.cloudinary.com/v1_1/${window.AppConfig.CLOUDINARY_CLOUD_NAME}/upload`;
         const fd = new FormData();
@@ -217,7 +228,7 @@
         } catch { throw new Error("Erro upload imagem"); }
     }
 
-    // --- ACTIONS ---
+    // --- AÇÕES DO USUÁRIO ---
     window.openMove = (id, type) => {
         const m = document.getElementById('move-modal');
         m.classList.remove('hidden');
@@ -261,9 +272,10 @@
                 newQty -= qty;
             } else { newQty += qty; }
 
+            // 1. Atualiza Quantidade
             await ref.update({ qty: newQty });
             
-            // Grava Auditoria (FORÇANDO O TIPO CORRETO)
+            // 2. Grava Auditoria (FORÇANDO O TIPO CORRETO)
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
@@ -281,6 +293,7 @@
         finally { btn.innerHTML = oldHtml; btn.disabled = false; }
     });
 
+    // --- FUNÇÕES DE MODAL E CRUD (PADRÃO) ---
     window.openItemModal = () => {
         const m = document.getElementById('item-modal'); m.classList.remove('hidden');
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
@@ -337,7 +350,7 @@
                 name: document.getElementById('i-name').value,
                 category: document.getElementById('i-cat').value,
                 patrimony: document.getElementById('i-pat').value,
-                location: document.getElementById('i-loc').value, // Salva Localização
+                location: document.getElementById('i-loc').value,
                 minQty: parseInt(document.getElementById('i-min').value),
                 description: document.getElementById('i-desc').value,
                 lastUpdated: new Date().toISOString()
