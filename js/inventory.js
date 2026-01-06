@@ -1,5 +1,5 @@
 // ==================================================================
-// MÓDULO ESTOQUE: Sequencial, Busca e Auditoria (VERSÃO FINAL)
+// MÓDULO ESTOQUE: Profissional, Estável e Determinístico
 // ==================================================================
 (function() {
     const App = window.HBTech;
@@ -10,20 +10,20 @@
     window.loadInventory = function() {
         const searchInput = document.getElementById('inventory-search');
         
-        // Listener de Busca Instantânea
+        // Listener de Busca Instantânea (Debounce natural do input)
         if(searchInput) {
             searchInput.addEventListener('input', (e) => {
                 renderItems(e.target.value);
             });
         }
 
-        // Verifica conexão antes de iniciar
+        // Verificação de Segurança: Banco Inicializado?
         if (!App.db) {
-            console.error("Erro Crítico: Banco de Dados não inicializado.");
+            console.error("ERRO CRÍTICO: Firebase DB não disponível.");
             return;
         }
 
-        // Carrega Estoque (Lista de Produtos)
+        // 1. Carregamento do Estoque (Inventory)
         App.db.ref('inventory').on('value', snap => {
             allItemsCache = [];
             if(!snap.exists()) {
@@ -31,19 +31,21 @@
                 return;
             }
 
+            // Normalização Inicial dos Dados
             snap.forEach(c => allItemsCache.push({ ...c.val(), id: c.key }));
             
-            // Ordena por ID Sequencial (Decrescente)
+            // Ordenação: Sequencial Decrescente (Novos cadastros primeiro)
+            // Fallback para 0 se seqId não existir
             allItemsCache.sort((a, b) => (b.seqId || 0) - (a.seqId || 0));
             
             renderItems(searchInput ? searchInput.value : '');
         });
 
-        // Inicia o monitoramento da Auditoria
+        // 2. Carregamento do Histórico (Auditoria)
         loadHistory();
     };
 
-    // --- RENDERIZAÇÃO DO ESTOQUE (COM BUSCA) ---
+    // --- RENDERIZAÇÃO DO ESTOQUE (COM REGRAS DETERMINÍSTICAS) ---
     function renderItems(searchTerm) {
         const list = document.getElementById('inventory-list');
         const isAdmin = App.userProfile && App.userProfile.role === 'admin';
@@ -51,6 +53,7 @@
 
         const term = searchTerm.toLowerCase();
         const filteredItems = allItemsCache.filter(item => {
+            // Busca segura com fallback para string vazia
             const name = (item.name || '').toLowerCase();
             const pat = (item.patrimony || '').toLowerCase();
             const cat = (item.category || '').toLowerCase();
@@ -65,19 +68,26 @@
             return;
         }
 
+        // Buffer de HTML para renderização única
+        let htmlBuffer = '';
+
         filteredItems.forEach(item => {
-            // Badges de Status
-            let statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700">OK</span>';
-            let borderClass = 'border-gray-100';
+            // REGRAS DETERMINÍSTICAS DE STATUS (SEM IA FAKE)
+            let statusLabel = 'OK';
+            let statusClass = 'bg-green-100 text-green-800 border-green-200';
+            let borderClass = 'border-gray-100'; // Borda do card
             
-            if(item.qty == 0) {
-                statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-red-100 text-red-700">ZERADO</span>';
-                borderClass = 'border-red-200 bg-red-50/30';
+            if(item.qty === 0) {
+                statusLabel = 'CRÍTICO';
+                statusClass = 'bg-red-100 text-red-800 border-red-200';
+                borderClass = 'border-red-200 bg-red-50/20'; // Destaque visual leve no card
             } else if (item.qty <= item.minQty) {
-                statusBadge = '<span class="px-2 py-1 rounded-md text-[10px] font-bold bg-orange-100 text-orange-700">BAIXO</span>';
+                statusLabel = 'RISCO';
+                statusClass = 'bg-orange-100 text-orange-800 border-orange-200';
                 borderClass = 'border-orange-200';
             }
 
+            // HTML Condicional (Admin)
             const deleteHtml = isAdmin 
                 ? `<button onclick="window.deleteItem('${item.id}')" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Excluir Cadastro"><i class='bx bx-trash text-lg'></i></button>` 
                 : '';
@@ -88,15 +98,14 @@
 
             const seqDisplay = item.seqId ? `#${String(item.seqId).padStart(4, '0')}` : '---';
 
-            // CARD DO PRODUTO (Responsivo)
-            list.innerHTML += `
+            htmlBuffer += `
                 <div class="bg-white p-3 md:p-4 rounded-xl border ${borderClass} shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 items-start sm:items-center">
                     <div class="flex items-center gap-3 w-full sm:w-auto">
                         ${imgHtml}
                         <div class="flex-grow sm:w-48 lg:w-64 overflow-hidden">
                             <div class="flex justify-between items-center sm:block">
-                                <h3 class="font-bold text-gray-800 text-sm md:text-base truncate leading-tight">${item.name}</h3>
-                                <div class="sm:hidden">${statusBadge}</div>
+                                <h3 class="font-bold text-gray-800 text-sm md:text-base truncate leading-tight" title="${item.name}">${item.name}</h3>
+                                <div class="sm:hidden"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}">${statusLabel}</span></div>
                             </div>
                             <p class="text-xs text-blue-600 font-mono font-bold mt-0.5">${seqDisplay}</p>
                             <p class="text-xs text-gray-500 truncate">${item.category}</p>
@@ -118,7 +127,7 @@
                             <p class="text-[10px] text-gray-400 uppercase">Estoque</p>
                             <div class="flex items-center justify-center gap-2">
                                 <span class="text-sm font-bold text-blue-900">${item.qty}</span>
-                                <span class="hidden sm:inline-block">${statusBadge}</span>
+                                <span class="hidden sm:inline-block px-2 py-0.5 rounded text-[10px] font-bold ${statusClass}">${statusLabel}</span>
                             </div>
                         </div>
                     </div>
@@ -133,66 +142,84 @@
                 </div>
             `;
         });
+
+        // Injeção única no DOM (Performance)
+        list.innerHTML = htmlBuffer;
     }
 
-    // --- FUNÇÃO DE AUDITORIA CORRIGIDA (O ERRO ESTAVA AQUI) ---
+    // --- AUDITORIA DE MOVIMENTAÇÕES (CORREÇÃO DE NORMALIZAÇÃO E ORDEM) ---
     function loadHistory() {
         const histDiv = document.getElementById('movements-list');
         if (!histDiv) return;
 
-        // Limpa lista se o banco não estiver pronto
-        if (!App.db) return;
-
+        // Listener de Valor (Garante consistência total, "Snapshot Real")
         App.db.ref('movements').limitToLast(100).on('value', snap => {
             if (!snap.exists()) {
                 histDiv.innerHTML = '<div class="p-8 text-center text-gray-400 text-sm"><i class="bx bx-list-ul text-3xl mb-2"></i><br>Nenhuma movimentação registrada.</div>';
                 return;
             }
 
-            const arr = [];
-            snap.forEach(c => arr.push(c.val()));
-            arr.reverse(); // Mais recente primeiro
+            // 1. Extração Segura
+            const movements = [];
+            snap.forEach(c => {
+                const val = c.val();
+                if(val) movements.push(val);
+            });
 
-            // Construção Otimizada do HTML (String Buffer)
+            // 2. ORDENAÇÃO EXPLÍCITA POR DATA (Requisito Obrigatório)
+            // Resolve o problema de "visualização inconsistente"
+            movements.sort((a, b) => {
+                const dateA = a.timestamp ? new Date(a.timestamp) : new Date(0);
+                const dateB = b.timestamp ? new Date(b.timestamp) : new Date(0);
+                return dateB - dateA; // Decrescente (Mais novo primeiro)
+            });
+
             let htmlContent = '';
 
-            arr.forEach(m => {
-                if (!m) return; // Pula registros inválidos
+            movements.forEach(m => {
+                // Proteção: Dados corrompidos não quebram a lista
+                if (!m.itemName) return; 
 
-                // Detecção de tipo (Compatível com dados antigos)
-                const typeStr = String(m.type || '').toLowerCase();
-                const isOut = (typeStr === 'out' || typeStr === 'saida');
+                // 3. NORMALIZAÇÃO DE DADOS LEGADOS (Requisito Obrigatório)
+                // Normaliza 'saida', 'out', 'retirada' SOMENTE na leitura.
+                const rawType = (m.type || '').toLowerCase().trim();
+                const isOut = ['out', 'saida', 'retirada', 'baixa'].includes(rawType);
                 
-                // Variáveis visuais
-                const icon = isOut ? 'bx-down-arrow-circle text-orange-600' : 'bx-up-arrow-circle text-green-600';
-                const typeText = isOut ? 'SAÍDA / BAIXA' : 'ENTRADA / REPOSIÇÃO';
-                const typeBg = isOut ? 'bg-orange-100 text-orange-800' : 'bg-green-100 text-green-800';
-                const qtyClass = isOut ? 'text-orange-600' : 'text-green-600';
-                const signal = isOut ? '-' : '+';
-                
-                // Tratamento seguro de data
-                let dateDisplay = '-';
+                // Configuração Visual Baseada no Tipo Normalizado
+                const typeConfig = isOut 
+                    ? { icon: 'bx-down-arrow-circle', color: 'text-orange-600', bg: 'bg-orange-100 text-orange-800', label: 'SAÍDA', signal: '-' }
+                    : { icon: 'bx-up-arrow-circle',   color: 'text-green-600',  bg: 'bg-green-100 text-green-800',  label: 'ENTRADA', signal: '+' };
+
+                // Formatação de Data Segura
+                let dateDisplay = 'Data n/d';
                 if (m.timestamp) {
                     try {
                         const d = new Date(m.timestamp);
-                        dateDisplay = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-                    } catch (e) { dateDisplay = 'Data inválida'; }
+                        if(!isNaN(d.getTime())) {
+                            dateDisplay = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+                        }
+                    } catch (e) { console.warn("Data inválida ignorada", m); }
                 }
 
+                // Renderização do Item
                 htmlContent += `
-                    <div class="p-3 md:p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition flex gap-3 items-start relative">
+                    <div class="p-3 md:p-4 bg-white border-b border-gray-100 hover:bg-gray-50 transition flex gap-3 items-start relative group">
                         <div class="mt-1 shrink-0">
-                            <i class='bx ${icon} text-3xl'></i>
+                            <i class='bx ${typeConfig.icon} text-3xl ${typeConfig.color}'></i>
                         </div>
                         <div class="flex-grow min-w-0">
                             <div class="flex flex-col sm:flex-row justify-between items-start mb-1 gap-1">
-                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName || 'Item Desconhecido'}</h4>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${typeBg}">${typeText}</span>
+                                <h4 class="font-bold text-gray-800 text-xs md:text-sm truncate pr-2">${m.itemName}</h4>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${typeConfig.bg}">${typeConfig.label}</span>
                             </div>
                             
                             <div class="text-xs text-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-1 mb-1 p-1.5 rounded bg-gray-50 border border-gray-100">
-                                <div class="truncate"><i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName || 'N/A'}</div>
-                                <div class="truncate"><i class='bx bx-map text-gray-400'></i> <strong>Destino:</strong> ${m.sector || 'N/A'}</div>
+                                <div class="truncate" title="${m.userName}">
+                                    <i class='bx bx-user text-gray-400'></i> <strong>Resp:</strong> ${m.userName || 'Sistema'}
+                                </div>
+                                <div class="truncate" title="${m.sector}">
+                                    <i class='bx bx-map text-gray-400'></i> <strong>Setor:</strong> ${m.sector || 'Geral'}
+                                </div>
                             </div>
 
                             <p class="text-xs text-gray-500 italic border-l-2 border-gray-300 pl-2 break-words">
@@ -202,20 +229,20 @@
                         </div>
                         
                         <div class="flex flex-col justify-center items-end h-full pl-2">
-                            <span class="text-lg md:text-xl font-bold ${qtyClass}">
-                                ${signal}${m.qty || 0}
+                            <span class="text-lg md:text-xl font-bold ${typeConfig.color}">
+                                ${typeConfig.signal}${m.qty || 0}
                             </span>
                         </div>
                     </div>
                 `;
             });
 
-            // Injeção ÚNICA no DOM (Evita erros de renderização)
-            histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro ao carregar lista.</p>';
+            // Update Atômico (Evita piscar excessivo comparado ao innerHTML +=)
+            histDiv.innerHTML = htmlContent || '<p class="text-center py-4 text-gray-400">Erro visualização.</p>';
         });
     }
 
-    // --- UPLOAD CLOUDINARY ---
+    // --- UPLOAD CLOUDINARY (Mantido Original) ---
     async function uploadImg(file) {
         const url = `https://api.cloudinary.com/v1_1/${window.AppConfig.CLOUDINARY_CLOUD_NAME}/upload`;
         const fd = new FormData();
@@ -228,10 +255,13 @@
         } catch { throw new Error("Erro upload imagem"); }
     }
 
-    // --- AÇÕES DO USUÁRIO ---
+    // --- CONTROLE DE MODAIS E FORMULÁRIOS ---
+    
+    // Abrir Modal de Movimentação
     window.openMove = (id, type) => {
         const m = document.getElementById('move-modal');
         m.classList.remove('hidden');
+        // Pequeno delay para garantir transição CSS
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
 
         document.getElementById('move-id').value = id;
@@ -248,10 +278,13 @@
         document.getElementById('m-qty').focus();
     };
 
+    // Submit de Movimentação (Entrada/Saída)
     document.getElementById('move-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
-        const oldHtml = btn.innerHTML; btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i>'; btn.disabled = true;
+        const oldHtml = btn.innerHTML; 
+        btn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Processando'; 
+        btn.disabled = true;
 
         try {
             const id = document.getElementById('move-id').value;
@@ -260,26 +293,29 @@
             const sector = document.getElementById('m-sector').value;
             const just = document.getElementById('m-just').value;
 
+            if(qty <= 0) throw new Error("Quantidade inválida.");
+
             const ref = App.db.ref(`inventory/${id}`);
             const snap = await ref.once('value');
             
-            if (!snap.exists()) throw new Error("Item não encontrado.");
+            if (!snap.exists()) throw new Error("Item não encontrado no banco.");
             const item = snap.val();
 
-            let newQty = item.qty || 0;
+            let newQty = parseInt(item.qty || 0);
             if(type === 'out') {
-                if(newQty < qty) throw new Error(`Estoque insuficiente. Disp: ${newQty}`);
+                if(newQty < qty) throw new Error(`Estoque insuficiente. Disponível: ${newQty}`);
                 newQty -= qty;
             } else { newQty += qty; }
 
-            // 1. Atualiza Quantidade
+            // 1. Atualiza Estoque (Atomicamente)
             await ref.update({ qty: newQty });
             
-            // 2. Grava Auditoria (FORÇANDO O TIPO CORRETO)
+            // 2. Grava Auditoria (Com Timestamp Preciso)
+            // IMPORTANTE: Gravamos 'type' cru ('in'/'out'). A normalização visual ocorre na leitura (loadHistory)
             await App.db.ref('movements').push({
                 itemId: id, 
                 itemName: item.name, 
-                type: type, // 'in' ou 'out'
+                type: type, 
                 qty: qty, 
                 sector: sector,
                 justification: just,
@@ -293,7 +329,7 @@
         finally { btn.innerHTML = oldHtml; btn.disabled = false; }
     });
 
-    // --- FUNÇÕES DE MODAL E CRUD (PADRÃO) ---
+    // Funções de Modal Genéricas
     window.openItemModal = () => {
         const m = document.getElementById('item-modal'); m.classList.remove('hidden');
         setTimeout(() => { m.classList.remove('opacity-0'); m.querySelector('div').classList.remove('scale-95'); }, 10);
@@ -331,7 +367,7 @@
     };
 
     window.deleteItem = (id) => {
-        if(confirm("ATENÇÃO HOSPITALAR:\n\nExcluir o cadastro apaga o histórico.\nPara descarte, use SAÍDA.\n\nConfirmar exclusão?")) {
+        if(confirm("ATENÇÃO HOSPITALAR:\n\nExcluir o cadastro apaga o histórico.\nPara descarte/baixa, use o botão SAÍDA.\n\nConfirmar exclusão definitiva?")) {
             App.db.ref(`inventory/${id}`).remove();
         }
     };
@@ -339,6 +375,7 @@
     document.getElementById('file-input').addEventListener('change', e => selectedImageFile = e.target.files[0]);
     document.getElementById('file-label').addEventListener('click', () => document.getElementById('file-input').click());
 
+    // Submit Cadastro/Edição
     document.getElementById('item-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = e.target.querySelector('button[type="submit"]');
@@ -359,6 +396,7 @@
             if(selectedImageFile) d.image = await uploadImg(selectedImageFile);
 
             if(!id) {
+                // Novo Item: Gera Sequencial e inicia com Qty 0
                 d.qty = 0;
                 const seqRef = App.db.ref('config/seqCounter');
                 const result = await seqRef.transaction((current) => {
@@ -367,6 +405,7 @@
                 d.seqId = result.snapshot.val();
                 await App.db.ref('inventory').push(d);
             } else {
+                // Edição
                 await App.db.ref(`inventory/${id}`).update(d);
             }
             
