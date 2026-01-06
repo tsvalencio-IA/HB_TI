@@ -33,9 +33,14 @@
                         showScreen('pending-screen');
                     }
                 } else {
-                    // Se o usuário foi deletado do banco, desloga
-                    App.auth.signOut();
-                    showScreen('auth-screen');
+                    // Se o usuário foi deletado do banco mas existe no Auth, desloga
+                    // Isso evita loops se o admin apagar o usuário manualmente
+                    if (user.metadata.creationTime === user.metadata.lastSignInTime) {
+                        // É um usuário novo acabou de ser criado, não desloga, aguarda o registro completar
+                    } else {
+                        App.auth.signOut();
+                        showScreen('auth-screen');
+                    }
                 }
             } else {
                 showScreen('auth-screen');
@@ -45,11 +50,25 @@
 
     async function handleRegister(email, password, name) {
         try {
-            const usersSnap = await App.db.ref('users').once('value');
-            const isFirstUser = !usersSnap.exists() || usersSnap.numChildren() === 0;
-
+            // CORREÇÃO: Cria o usuário no Authentication PRIMEIRO.
+            // Isso garante que ele tenha um UID e esteja logado antes de tentar ler/escrever no banco.
             const userCred = await App.auth.createUserWithEmailAndPassword(email, password);
             
+            // Variável de controle para definir se é admin
+            let isFirstUser = false;
+
+            try {
+                // Agora que está logado, tenta verificar se o banco está vazio
+                const usersSnap = await App.db.ref('users').once('value');
+                isFirstUser = !usersSnap.exists() || usersSnap.numChildren() === 0;
+            } catch (permError) {
+                // Se der erro de permissão ao ler a lista (regras de segurança restritas),
+                // assume que NÃO é o primeiro usuário (segurança por padrão)
+                console.warn("Permissão de leitura da lista negada na criação. Definindo como Tech.", permError);
+                isFirstUser = false;
+            }
+            
+            // Grava o perfil no Realtime Database usando o UID gerado
             await App.db.ref(`users/${userCred.user.uid}`).set({
                 name: name,
                 email: email,
@@ -57,9 +76,11 @@
                 status: isFirstUser ? 'approved' : 'pending',
                 joinedAt: new Date().toISOString()
             });
-
+            
+            // O listener authStateChanged vai pegar a mudança e redirecionar
+            
         } catch (error) {
-            alert("Erro: " + error.message);
+            alert("Erro no cadastro: " + error.message);
         }
     }
 
@@ -114,11 +135,20 @@
 
         regForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            // Feedback visual no botão de cadastro
+            const btn = e.target.querySelector('button');
+            const oldHtml = btn.innerHTML; 
+            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Criando...";
+            btn.disabled = true;
+
             handleRegister(
                 document.getElementById('r-email').value,
                 document.getElementById('r-pass').value,
                 document.getElementById('r-name').value
-            );
+            ).finally(() => {
+                btn.innerHTML = oldHtml;
+                btn.disabled = false;
+            });
         });
 
         document.getElementById('logout-btn').addEventListener('click', () => App.auth.signOut());
