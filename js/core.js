@@ -33,14 +33,9 @@
                         showScreen('pending-screen');
                     }
                 } else {
-                    // Se o usuário foi deletado do banco mas existe no Auth, desloga
-                    // Isso evita loops se o admin apagar o usuário manualmente
-                    if (user.metadata.creationTime === user.metadata.lastSignInTime) {
-                        // É um usuário novo acabou de ser criado, não desloga, aguarda o registro completar
-                    } else {
-                        App.auth.signOut();
-                        showScreen('auth-screen');
-                    }
+                    // Se o usuário existe no Auth mas não no Banco (ex: erro no meio do cadastro)
+                    // Não desloga imediatamente para permitir tentativas de correção manual se necessário
+                    console.warn("Usuário autenticado sem perfil no banco.");
                 }
             } else {
                 showScreen('auth-screen');
@@ -50,26 +45,24 @@
 
     async function handleRegister(email, password, name) {
         try {
-            // CORREÇÃO: Cria o usuário no Authentication PRIMEIRO.
-            // Isso garante que ele tenha um UID e esteja logado antes de tentar ler/escrever no banco.
+            // 1. PRIMEIRO: Cria o usuário no Authentication (Garante o Login)
             const userCred = await App.auth.createUserWithEmailAndPassword(email, password);
-            
-            // Variável de controle para definir se é admin
-            let isFirstUser = false;
+            const uid = userCred.user.uid;
 
+            // 2. Tenta verificar se é o primeiro usuário (Lógica Blindada)
+            let isFirstUser = false;
             try {
-                // Agora que está logado, tenta verificar se o banco está vazio
-                const usersSnap = await App.db.ref('users').once('value');
-                isFirstUser = !usersSnap.exists() || usersSnap.numChildren() === 0;
-            } catch (permError) {
-                // Se der erro de permissão ao ler a lista (regras de segurança restritas),
-                // assume que NÃO é o primeiro usuário (segurança por padrão)
-                console.warn("Permissão de leitura da lista negada na criação. Definindo como Tech.", permError);
+                const usersSnap = await App.db.ref('users').limitToFirst(1).once('value');
+                isFirstUser = !usersSnap.exists(); // Se não existir nada, é o primeiro
+            } catch (ignoredError) {
+                // Se der erro de permissão aqui, IGNORA e assume que NÃO é admin.
+                // Isso garante que o cadastro prossiga.
+                console.log("Verificação de admin pulada por segurança.");
                 isFirstUser = false;
             }
-            
-            // Grava o perfil no Realtime Database usando o UID gerado
-            await App.db.ref(`users/${userCred.user.uid}`).set({
+
+            // 3. GRAVA O PERFIL (Isso agora deve funcionar pois o usuário já tem UID)
+            await App.db.ref(`users/${uid}`).set({
                 name: name,
                 email: email,
                 role: isFirstUser ? 'admin' : 'tech',
@@ -77,10 +70,14 @@
                 joinedAt: new Date().toISOString()
             });
             
-            // O listener authStateChanged vai pegar a mudança e redirecionar
+            // Sucesso! O listener onAuthStateChanged vai cuidar do resto.
             
         } catch (error) {
-            alert("Erro no cadastro: " + error.message);
+            alert("Erro ao cadastrar: " + error.message);
+            // Se o usuário foi criado no Auth mas falhou no banco, tentamos limpar
+            if (App.auth.currentUser) {
+                App.auth.currentUser.delete().catch(() => {});
+            }
         }
     }
 
@@ -100,11 +97,13 @@
 
     function showAppInterface(profile) {
         showScreen('app-screen');
-        document.getElementById('user-name-display').textContent = `${profile.name}`;
+        const nameDisplay = document.getElementById('user-name-display');
+        if(nameDisplay) nameDisplay.textContent = `${profile.name}`;
         
         // Libera aba Admin se for Admin
         if(profile.role === 'admin') {
-            document.getElementById('nav-admin').classList.remove('hidden');
+            const adminBtn = document.getElementById('nav-admin');
+            if(adminBtn) adminBtn.classList.remove('hidden');
             loadAdminPanel();
         }
 
@@ -122,57 +121,64 @@
             regBox.classList.toggle('hidden');
         }));
 
-        loginForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const btn = e.target.querySelector('button');
-            const oldHtml = btn.innerHTML; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
-            
-            App.auth.signInWithEmailAndPassword(
-                document.getElementById('l-email').value,
-                document.getElementById('l-pass').value
-            ).catch(e => { alert(e.message); btn.innerHTML = oldHtml; });
-        });
-
-        regForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            // Feedback visual no botão de cadastro
-            const btn = e.target.querySelector('button');
-            const oldHtml = btn.innerHTML; 
-            btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Criando...";
-            btn.disabled = true;
-
-            handleRegister(
-                document.getElementById('r-email').value,
-                document.getElementById('r-pass').value,
-                document.getElementById('r-name').value
-            ).finally(() => {
-                btn.innerHTML = oldHtml;
-                btn.disabled = false;
+        if(loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                const oldHtml = btn.innerHTML; btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i>";
+                
+                App.auth.signInWithEmailAndPassword(
+                    document.getElementById('l-email').value,
+                    document.getElementById('l-pass').value
+                ).catch(e => { alert(e.message); btn.innerHTML = oldHtml; });
             });
-        });
+        }
 
-        document.getElementById('logout-btn').addEventListener('click', () => App.auth.signOut());
+        if(regForm) {
+            regForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                const oldHtml = btn.innerHTML; 
+                btn.innerHTML = "<i class='bx bx-loader-alt bx-spin'></i> Criando...";
+                btn.disabled = true;
+
+                handleRegister(
+                    document.getElementById('r-email').value,
+                    document.getElementById('r-pass').value,
+                    document.getElementById('r-name').value
+                ).finally(() => {
+                    btn.innerHTML = oldHtml;
+                    btn.disabled = false;
+                });
+            });
+        }
+
+        const logoutBtn = document.getElementById('logout-btn');
+        if(logoutBtn) logoutBtn.addEventListener('click', () => App.auth.signOut());
     }
 
     // --- Painel Admin ---
     function loadAdminPanel() {
         const list = document.getElementById('admin-user-list');
+        if(!list) return;
+
         App.db.ref('users').on('value', snap => {
             list.innerHTML = '';
+            if(!snap.exists()) return;
+
             snap.forEach(u => {
                 const user = u.val();
-                if(u.key === App.currentUser.uid) return; // Não mostra a si mesmo
+                if(App.currentUser && u.key === App.currentUser.uid) return; 
 
                 const isPending = user.status === 'pending';
-                // Layout responsivo para lista de usuários
                 list.innerHTML += `
                     <div class="p-3 md:p-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-gray-50 transition">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold text-lg shrink-0">
-                                ${user.name.charAt(0).toUpperCase()}
+                                ${user.name ? user.name.charAt(0).toUpperCase() : '?'}
                             </div>
                             <div class="overflow-hidden">
-                                <p class="font-bold text-gray-800 text-sm truncate">${user.name}</p>
+                                <p class="font-bold text-gray-800 text-sm truncate">${user.name || 'Sem Nome'}</p>
                                 <p class="text-xs text-gray-500 truncate">${user.email}</p>
                             </div>
                         </div>
